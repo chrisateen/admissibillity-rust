@@ -17,22 +17,37 @@ struct AdmData {
     layer_1: VertexSet,
     layer_2: VertexMap<VertexSet>,
     estimate: usize,
-    num_layer_2_vias: usize,
+    //num_layer_2_vias: usize,//change this to a set instead
 }
 
 impl AdmData {
     pub fn new(id: Vertex, layer_1:VertexSet) -> Self{
-        AdmData {id, estimate: layer_1.len(), layer_1, layer_2: VertexMap::default(), num_layer_2_vias: 0}
+        AdmData {id, estimate: layer_1.len(), layer_1, layer_2: VertexMap::default()}
     }
 
-    fn is_num_layer_2_above_threshold(&self, p:usize) -> bool{
-        self.layer_2.len() > (p - self.layer_1.len()) * (p - 1)
+    pub fn check_integrity(&self, graph:&AdmGraph) {
+        for u in &self.layer_1{
+            debug_assert!(graph.unordered.contains(&u));
+        }
+
+        for (u, vias) in &self.layer_2{
+            debug_assert!(graph.unordered.contains(&u));
+            for v in vias{
+                debug_assert!(graph.ordering.contains(&v));
+            }
+        }
+
+        debug_assert!(graph.unordered.contains(&self.id));
     }
 
-    fn is_num_of_vias_above_threshold(&self, p:usize) -> bool{
-        let num_layer_1 = self.layer_1.len();
-        self.num_layer_2_vias > (p - num_layer_1) * (p - num_layer_1 + 1)
-    }
+    // fn is_num_layer_2_above_threshold(&self, p:usize) -> bool{
+    //     self.layer_2.len() > (p - self.layer_1.len()) * (p - 1)
+    // }
+    //
+    // fn is_num_of_vias_above_threshold(&self, p:usize) -> bool{
+    //     let num_layer_1 = self.layer_1.len();
+    //     self.num_layer_2_vias > (p - num_layer_1) * (p - num_layer_1 + 1)
+    // }
 
     // Compute packing for the layer 2 vertices
     // Return the maximum matching value
@@ -43,12 +58,9 @@ impl AdmData {
             return len_layer_2
         }
         for (u, vias) in &self.layer_2{
-            if (vias.len() >0){
-                edges.extend(vias.iter().map(|v| (u,v)));
-            }
+            edges.extend(vias.iter().map(|v| (u,v)));
         }
-        print!("Vertex {0} ", self.id);
-        println!("Edges{:?}", edges);
+        println!("{:?}",edges);
         matching(&edges).len()
     }
 
@@ -66,21 +78,28 @@ impl AdmData {
         self.estimate = self.layer_1.len() + self.compute_packing();
     }
 
+    pub fn update_indirect_neighbour(&mut self, u:&Vertex, p:usize){
+        self.layer_2.remove(&u);
+        //As we are losing a layer 2 vertex we want to reduce the estimate
+        self.estimate = self.estimate.saturating_sub(1);
+        self.update_estimate(p);
+    }
+
     // Remove u from list of layer_1 vertices as it's is now to the right of AdmData
     // Adds all u_layer1 vertices to layer_2 with u being the via
-    pub fn update(&mut self, u:&Vertex, u_layer1:&VertexSet, p:usize){
+    pub fn update_direct_neighbour(&mut self, u:&Vertex, u_layer1:&VertexSet, p:usize){
         // Remove the vertex that is now to the right
         self.layer_1.remove(u);
         self.estimate = self.estimate.saturating_sub(1);
         for v in u_layer1{
+            if *v == self.id || self.layer_1.contains(v){
+                continue
+            }
             // Only add v as a layer_2 vertex if it is not directly reachable
-            if *v != self.id || self.layer_1.contains(v){
-                let entry = self.layer_2.entry(*v).or_default();
-                // Only add u as a via if v has less than p + 1 vias
-                if entry.len() < p + 1 {
-                    entry.insert(*u);
-                    self.num_layer_2_vias += 1;
-                }
+            let entry = self.layer_2.entry(*v).or_default();
+            // Only add u as a via if v has less than p + 1 vias
+            if entry.len() < p + 1 {
+                entry.insert(*u);
             }
         }
         self.update_estimate(p);
@@ -119,6 +138,10 @@ impl AdmGraph{
 
         while !candidates.is_empty(){
 
+            for (u, u_data) in &self.adm_data{
+                u_data.check_integrity(self);
+            }
+
             //We know p is true if all the vertices have neighbours less than or equal to p
             if candidates.len() + self.ordering.len() == self.graph.num_vertices() { true; }
 
@@ -133,11 +156,26 @@ impl AdmGraph{
             // Update the layer 1 and layer 2 vertices for each left neighbours of u
             for v in &u_data.layer_1{
                 let v_data = self.adm_data.get_mut(&v).unwrap();
-                v_data.update(&u, &u_data.layer_1, p);
+                v_data.update_direct_neighbour(&u, &u_data.layer_1, p);
                 // Add v to candidates if estimate is p or less
                 if v_data.estimate <= p {
                     candidates.insert(*v);
                 }
+            }
+            for v in &u_data.layer_1{
+                let v_data = self.adm_data.get(&v).unwrap();
+                v_data.check_integrity(&self);
+            }
+            for v in u_data.layer_2.keys(){
+                let v_data = self.adm_data.get_mut(&v).unwrap();
+                v_data.update_indirect_neighbour(&u,p);
+                if v_data.estimate <= p {
+                    candidates.insert(*v);
+                }
+            }
+            for v in u_data.layer_2.keys(){
+                let v_data = self.adm_data.get(&v).unwrap();
+                v_data.check_integrity(&self);
             }
         }
         //If all vertices are ordered then p is true
