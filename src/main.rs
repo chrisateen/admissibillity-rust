@@ -338,7 +338,7 @@ mod test_main {
 
     pub fn generate_random_graph() ->EditGraph{
         let mut graph = EditGraph::new();
-        let mut nums: Vec<u32> = (20..40).collect();
+        let mut nums: Vec<u32> = (20..50).collect();
         nums.shuffle(&mut thread_rng());
         let edges =  vec![
             (1,2), (1,9),
