@@ -20,6 +20,7 @@ struct AdmData {
     //num_layer_2_vias: usize,//change this to a set instead
 }
 
+
 impl AdmData {
     pub fn new(id: Vertex, layer_1:VertexSet) -> Self{
         AdmData {id, estimate: layer_1.len(), layer_1, layer_2: VertexMap::default()}
@@ -64,8 +65,9 @@ impl AdmData {
         matching(&edges).len()
     }
 
-    // Update the estimate when the current estimate is p
+    // Update the estimate
     pub fn update_estimate(&mut self, p: usize) {
+        //Don't update the estimate if estimate is not p
         if self.estimate != p{
             return;
         }
@@ -78,6 +80,7 @@ impl AdmData {
         self.estimate = self.layer_1.len() + self.compute_packing();
     }
 
+    //Remove a layer 2 vertex
     pub fn update_indirect_neighbour(&mut self, u:&Vertex, p:usize){
         self.layer_2.remove(&u);
         //As we are losing a layer 2 vertex we want to reduce the estimate
@@ -92,10 +95,10 @@ impl AdmData {
         self.layer_1.remove(u);
         self.estimate = self.estimate.saturating_sub(1);
         for v in u_layer1{
+            // Only add v as a layer_2 vertex if it is not directly reachable
             if *v == self.id || self.layer_1.contains(v){
                 continue
             }
-            // Only add v as a layer_2 vertex if it is not directly reachable
             let entry = self.layer_2.entry(*v).or_default();
             // Only add u as a via if v has less than p + 1 vias
             if entry.len() < p + 1 {
@@ -162,6 +165,7 @@ impl AdmGraph{
                     candidates.insert(*v);
                 }
             }
+            //for testing
             for v in &u_data.layer_1{
                 let v_data = self.adm_data.get(&v).unwrap();
                 v_data.check_integrity(&self);
@@ -173,6 +177,7 @@ impl AdmGraph{
                     candidates.insert(*v);
                 }
             }
+            //for testing
             for v in u_data.layer_2.keys(){
                 let v_data = self.adm_data.get(&v).unwrap();
                 v_data.check_integrity(&self);
@@ -191,4 +196,133 @@ fn main() {
     let p = 16;
     let is_p = adm_graph.compute_ordering(p);
     println!(" Is {0}-2 Admissible:{1}", p, is_p);
+}
+
+
+#[cfg(test)]
+mod test_adm_data {
+    use std::collections::HashMap;
+    use graphbench::editgraph::EditGraph;
+    use graphbench::graph::{MutableGraph, VertexMap, VertexSet, Vertex};
+    use crate::AdmData;
+
+    #[test]
+    fn update_estimate_does_not_update_if_estimate_is_not_p() {
+        let layer_1 = vec![2, 3, 4, 5].iter().cloned().collect();
+        let vias = vec![7, 8, 9].iter().cloned().collect();
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.estimate = 4;
+        adm_data.layer_2.insert(6, vias);
+        adm_data.update_estimate(3);
+        assert_eq!(adm_data.estimate, 4);
+        adm_data.update_estimate(5);
+        assert_eq!(adm_data.estimate, 4);
+    }
+
+    #[test]
+    fn update_estimate_updates_estimate_if_estimate_is_p() {
+        let layer_1 = vec![2, 3, 4, 5].iter().cloned().collect();
+        let vias = vec![7, 8, 9].iter().cloned().collect();
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.estimate = 4;
+        adm_data.layer_2.insert(6, vias);
+        adm_data.update_estimate(4);
+        assert_eq!(adm_data.estimate, 5);
+    }
+
+    #[test]
+    fn update_direct_neighbour_removes_u_from_layer_1_vertices(){
+        let u : Vertex = 2;
+        let layer_1 = vec![2, 3, 4, 5,6].iter().cloned().collect();
+        let u_layer_1 = vec![7, 8].iter().cloned().collect();
+        let expected_layer_1 = vec![3, 4, 5, 6].iter().cloned().collect();
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.estimate = 5;
+        adm_data.update_direct_neighbour(&u,&u_layer_1,3);
+        assert_eq!(adm_data.layer_1,expected_layer_1);
+        assert_eq!(adm_data.estimate,4);
+    }
+
+    #[test]
+    fn update_direct_neighbour_adds_each_u_layer_1_to_layer_2_with_u_as_vias(){
+        let u : Vertex = 2;
+        let layer_1 = vec![2, 3, 4, 5].iter().cloned().collect();
+        let u_layer_1: VertexSet = vec![6, 7, 8].iter().cloned().collect();
+        let mut expected_layer_2 : VertexMap<VertexSet> = VertexMap::default();
+        for v in &u_layer_1{
+            let entry = expected_layer_2.entry(*v).or_default();
+            entry.insert(u);
+        }
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.estimate = 4;
+        adm_data.update_direct_neighbour(&u,&u_layer_1,3);
+        assert_eq!(adm_data.layer_2,expected_layer_2);
+        assert_eq!(adm_data.estimate,4);
+    }
+
+    #[test]
+    fn update_direct_neighbour_does_not_add_v_to_layer_2_if_v_is_directly_reachable(){
+        let u : Vertex = 2;
+        let layer_1: VertexSet = vec![2, 3, 4, 5].iter().cloned().collect();
+        let u_layer_1: VertexSet = vec![5, 6, 7, 8].iter().cloned().collect();
+        let expected_layer_2_u = u_layer_1.difference(&layer_1);
+        let mut expected_layer_2 : VertexMap<VertexSet> = VertexMap::default();
+        for v in expected_layer_2_u{
+            let entry = expected_layer_2.entry(*v).or_default();
+            entry.insert(u);
+        }
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.estimate = 4;
+        adm_data.update_direct_neighbour(&u,&u_layer_1,3);
+        assert_eq!(adm_data.layer_2,expected_layer_2);
+        assert_eq!(adm_data.estimate,4);
+    }
+
+    #[test]
+    fn update_direct_neighbour_does_not_add_more_than_p_plus_1_vias(){
+        let v : Vertex = 6;
+        let u : Vertex = 11;
+        let layer_1: VertexSet = vec![2, 3, 4, 5].iter().cloned().collect();
+        let vias: VertexSet = vec![7,8,9,10].iter().cloned().collect();
+        let u_layer_1: VertexSet = vec![6].iter().cloned().collect();
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.layer_2.insert(v,vias);
+        adm_data.estimate = 5;
+        adm_data.update_direct_neighbour(&u,&u_layer_1,3);
+        let expected = adm_data.layer_2.get(&v).unwrap();
+        assert_eq!(expected.len(),4);
+        assert_eq!(adm_data.estimate,4);
+    }
+
+    #[test]
+    fn update_indirect_neighbour_removes_layer_2_vertex(){
+        let v : Vertex = 6;
+        let layer_1: VertexSet = vec![2, 3, 4, 5].iter().cloned().collect();
+        let vias: VertexSet = vec![7,8,9,10].iter().cloned().collect();
+        let mut adm_data = AdmData::new(1, layer_1);
+        adm_data.layer_2.insert(v,vias);
+        adm_data.estimate = 5;
+        adm_data.update_indirect_neighbour(&v,3);
+        assert_eq!(adm_data.layer_2.contains_key(&v),false);
+        assert_eq!(adm_data.estimate,4);
+    }
+}
+
+#[cfg(test)]
+mod test_adm_graph {
+    use graphbench::graph::*;
+    use graphbench::editgraph::EditGraph;
+    use crate::AdmGraph;
+
+    #[test]
+    pub fn compute_ordering_returns_true_if_all_v_in_g_has_neighbours_on_or_below_p(){
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (1,5), (2,6), (3,6), (4,6), (5,6)].iter().cloned().collect();
+        edges.iter().map(|(u,v)| graph.add_edge(v,u));
+        let num_vertices = graph.num_vertices();
+        let mut adm_graph = AdmGraph::new(graph);
+        assert_eq!(adm_graph.compute_ordering(4),true);
+        assert_eq!(adm_graph.unordered.is_empty(),true);
+        assert_eq!(adm_graph.ordering.len(),num_vertices);
+    }
 }
