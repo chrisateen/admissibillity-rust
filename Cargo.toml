@@ -10,3 +10,6 @@ graphbench = { git="https://github.com/microgravitas/graphbench" }
 flate2 = "1.0.22"
 mwmatching = "0.1.1"
 hopcroft-karp = "0.2.0"
+
+[dev-dependencies]
+rand = "0.8.5"

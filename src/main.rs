@@ -326,3 +326,49 @@ mod test_adm_graph {
         assert_eq!(adm_graph.ordering.len(),num_vertices);
     }
 }
+
+#[cfg(test)]
+mod test_main {
+    use graphbench::graph::*;
+    use graphbench::editgraph::EditGraph;
+    use crate::AdmGraph;
+    use std::collections::HashMap;
+    use rand::thread_rng;
+    use rand::prelude::SliceRandom;
+
+    pub fn generate_random_graph() ->EditGraph{
+        let mut graph = EditGraph::new();
+        let mut nums: Vec<u32> = (20..40).collect();
+        nums.shuffle(&mut thread_rng());
+        let edges =  vec![
+            (1,2), (1,9),
+            (2,3), (2,9),
+            (3,4), (3,7), (3,9),
+            (4,5), (4,6),
+            (5,6), (5,8),
+            (6,7),
+            (7,8),
+            (8,9)
+        ];
+        for (v, u) in edges{
+            let new_v = nums[v-1];
+            let new_u = nums[u-1];
+            graph.add_edge(&new_u,&new_v);
+        }
+        return graph;
+    }
+
+    #[test]
+    pub fn test_admissibility_returns_true_for_correct_p_value(){
+        let mut graph = generate_random_graph();
+        let mut adm_graph = AdmGraph::new(graph);
+        assert_eq!(adm_graph.compute_ordering(3),true);
+    }
+
+    #[test]
+    pub fn test_admissibility_returns_false_for_incorrect_p_value(){
+        let mut graph = generate_random_graph();
+        let mut adm_graph = AdmGraph::new(graph);
+        assert_eq!(adm_graph.compute_ordering(2),false);
+    }
+}
