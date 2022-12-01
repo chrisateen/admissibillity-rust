@@ -6,23 +6,12 @@ pub struct AdmData {
     pub layer_1: VertexSet,
     pub layer_2: VertexMap<VertexSet>,
     pub estimate: usize,
-    //num_layer_2_vias: usize,//change this to a set instead
 }
 
 impl AdmData {
     pub fn new(id: Vertex, layer_1:VertexSet) -> Self{
         AdmData {id, estimate: layer_1.len(), layer_1, layer_2: VertexMap::default()}
     }
-
-    //further optimisation is if there is more than p+1 store in layer 1
-    // fn is_num_layer_2_above_threshold(&self, p:usize) -> bool{
-    //     self.layer_2.len() > (p - self.layer_1.len()) * (p - 1)
-    // }
-    //
-    // fn is_num_of_vias_above_threshold(&self, p:usize) -> bool{
-    //     let num_layer_1 = self.layer_1.len();
-    //     self.num_layer_2_vias > (p - num_layer_1) * (p - num_layer_1 + 1)
-    // }
 
     // Compute packing for the layer 2 vertices
     // Return the maximum matching value
@@ -44,12 +33,6 @@ impl AdmData {
         if self.estimate != p{
             return;
         }
-        // Don't do maximum matching if num of layer 2 or vias is above threshold
-        // Instead increment estimate by 1
-        // if self.is_num_layer_2_above_threshold(p) || self.is_num_of_vias_above_threshold(p){
-        //     self.estimate += 1;
-        //     return;
-        // }
         self.estimate = self.layer_1.len() + self.compute_packing();
     }
 
