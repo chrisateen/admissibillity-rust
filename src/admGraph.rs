@@ -51,6 +51,8 @@ impl AdmGraph{
                     candidates.insert(*v);
                 }
             }
+            // Check all the layer 2 vertices (v).
+            // If u is listed as a layer 2 vertex of v remove it as v is now to the right of u
             for v in u_data.layer_2.keys(){
                 let v_data = self.adm_data.get_mut(&v).unwrap();
                 v_data.update_indirect_neighbour(&u,p);
