@@ -2,15 +2,15 @@ use graphbench::editgraph::EditGraph;
 use graphbench::graph::*;
 use crate::AdmData;
 
-pub struct AdmGraph{
-    graph: EditGraph,
+pub struct AdmGraph<'a> {
+    graph: &'a EditGraph,
     ordering: Vec<Vertex>,
     unordered: VertexSet,
     adm_data: VertexMap<AdmData>
 }
 
-impl AdmGraph{
-    pub fn new(graph:EditGraph) -> Self{
+impl<'a> AdmGraph<'a> {
+    pub fn new(graph:&'a EditGraph) -> Self{
         let mut adm_data = VertexMap::default();
         let unordered = graph.vertices().copied().collect();
         for u in graph.vertices(){
@@ -81,7 +81,7 @@ mod test_adm_graph {
             graph.add_edge(u,v);
         }
         let num_vertices = graph.num_vertices();
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
         assert_eq!(adm_graph.compute_ordering(4),true);
         assert_eq!(adm_graph.unordered.is_empty(),true);
         assert_eq!(adm_graph.ordering.len(),num_vertices);
@@ -95,7 +95,7 @@ mod test_adm_graph {
             graph.add_edge(u,v);
         }
         let num_vertices = graph.num_vertices();
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
         assert_eq!(adm_graph.compute_ordering(3),true);
         assert_eq!(adm_graph.unordered.is_empty(),true);
         assert_eq!(adm_graph.ordering.len(),num_vertices);
@@ -109,7 +109,7 @@ mod test_adm_graph {
             graph.add_edge(u,v);
         }
         let num_vertices = graph.num_vertices();
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
         assert_eq!(adm_graph.compute_ordering(2),false);
         assert_eq!(adm_graph.unordered.is_empty(),false);
         assert!(adm_graph.ordering.len() < num_vertices);

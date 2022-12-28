@@ -2,7 +2,7 @@ mod admData;
 mod admGraph;
 use crate::admData::AdmData;
 use std::fs::{OpenOptions};
-use clap::Parser;
+use clap::{Parser};
 use std::time::{Instant};
 use csv::Writer;
 use graphbench::editgraph::EditGraph;
@@ -12,10 +12,15 @@ use crate::admGraph::AdmGraph;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// p
-    p: usize,
     /// network file name
     network: String,
+
+    #[arg(default_value_t = String::from("../network-corpus/networks/"))]
+    network_path: String,
+
+    //start p value
+    #[arg(short, long, default_value_t = 1)]
+    p: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -41,28 +46,33 @@ fn save_result(network:String, duration: u128, p: usize){
     wtr.flush();
 }
 
-fn compute(p: usize, network:&String) -> bool{
-    let file_dir = format!("../network-corpus/networks/{}.txt.gz", network);
-    let graph = EditGraph::from_gzipped(&file_dir).expect(&format!("Error occurred loading graph {}",network));
+fn load_graph(network_path:String, network:String) -> EditGraph{
+    let file_dir = format!("{}/{}.txt.gz", network_path,network);
+    EditGraph::from_gzipped(&file_dir).expect(&format!("Error occurred loading graph {}",network))
+}
+
+fn compute(p: usize, graph:&EditGraph) -> bool{
     let mut adm_graph = AdmGraph::new(graph);
     adm_graph.compute_ordering(p)
 }
 
 fn main() {
     let args = Args::parse();
-    let mut p = args.p;
+    let network_path = args.network_path;
     let network = args.network;
+    let mut p = args.p;
 
-    let mut is_p = false;
-    let start = Instant::now();
+    let mut is_p;
+    let graph = load_graph(network_path, network);
+    //let start = Instant::now();
     loop {
         println!("p {}", p);
-        is_p = compute(p, &network);
+        is_p = compute(p, &graph);
         if is_p { break; }
         p += 1;
     };
-    let duration = start.elapsed().as_millis();
-    save_result(network, duration, p);
+    //let duration = start.elapsed().as_millis();
+    //save_result(network, duration, p);
     println!(" Is {0}-2 Admissible:{1}", p, is_p);
 }
 
@@ -100,12 +110,11 @@ mod test_main {
 
     #[test]
     pub fn test_admissibility_returns_correct_p_value(){
-        let graph = generate_random_graph();
+        let graph = &generate_random_graph().clone();
         let mut p = 1;
-        let mut is_p = false;
         loop {
-            let mut adm_graph = AdmGraph::new(graph.clone());
-            is_p = adm_graph.compute_ordering(p);
+            let mut adm_graph = AdmGraph::new(graph);
+            let is_p = adm_graph.compute_ordering(p);
             if is_p { break; }
             p += 1;
         }
