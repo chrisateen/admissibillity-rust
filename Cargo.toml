@@ -1,5 +1,5 @@
 [package]
-name = "network-corpus-rust"
+name = "admissibility-rust"
 version = "0.1.0"
 edition = "2021"
 author = "Algolab"

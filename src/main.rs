@@ -73,7 +73,7 @@ fn main() {
     };
     //let duration = start.elapsed().as_millis();
     //save_result(network, duration, p);
-    println!(" Is {0}-2 Admissible:{1}", p, is_p);
+    println!("p is {}", p);
 }
 
 
