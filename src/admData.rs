@@ -57,10 +57,6 @@ impl AdmData {
             }
             let entry = self.layer_2.entry(*v).or_default();
             entry.insert(*u);
-            // Only add u as a via if v has less than p + 1 vias
-            //if entry.len() < p + 1 {
-                //entry.insert(*u);
-            //}
         }
         self.update_estimate(p);
     }
