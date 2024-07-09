@@ -141,6 +141,29 @@ impl AdmData {
             }
         }
     }
+
+    //TODO how best to prepare M for augmented path
+    fn prepare_for_augmenting_path(&self){
+        return ();
+    }
+
+    //TODO Update M if size of matching is p + 1
+    fn update_m (&self){
+        return;
+    }
+
+    pub fn should_add_to_candidates(&self, p:usize) -> bool {
+        //if estimate > p no need to do augmenting path
+        if self.estimate > p {
+            return false;
+        }
+
+        let matching = self.prepare_for_augmenting_path();
+
+        return true;
+    }
+
+
 }
 
 #[cfg(test)]
