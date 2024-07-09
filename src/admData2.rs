@@ -142,9 +142,40 @@ impl AdmData {
         }
     }
 
-    //TODO how best to prepare M for augmented path
-    fn prepare_for_augmenting_path(&self){
-        return ();
+    //TODO is this the best way to prepare M for augmented path
+    //TODO Don't bother with matching if both M1 & M2 do not have at least 1 vertex with unmatched neighbour
+    fn prepare_for_augmenting_path(&self) -> Vec<(&Vertex, &Vertex)> {
+        let mut edges = Vec::default();
+
+        //Gets all the edges from M1
+        for (v, m1) in &self.m1 {
+            let v_matching_partner = &m1.matching_partner;
+            let v_adm = self.r1.get(&v).unwrap();
+            let mut v_has_unmatched_partner = false;
+
+            for (w, _) in &v_adm.l1{
+                //Add edges between M1 and M2
+                if self.m2.contains_key(&w){
+                    edges.push((v, w));
+                }
+                //Add a single edge between an M1 and a L2 not in M2
+                if !v_has_unmatched_partner{
+                    edges.push((v, w));
+                    v_has_unmatched_partner = true;
+                }
+            }
+            edges.push((v, v_matching_partner));
+
+        }
+
+        //Add edges from M2 to an unmatched partner
+        for (v, m2) in &self.m2 {
+            if m2.unmatched_r1_neighbours.len() > 0{
+                edges.push((&v, &*m2.unmatched_r1_neighbours.iter().next().unwrap()));
+            }
+        }
+
+        return edges;
     }
 
     //TODO Update M if size of matching is p + 1
@@ -152,6 +183,7 @@ impl AdmData {
         return;
     }
 
+    //TODO
     pub fn should_add_to_candidates(&self, p:usize) -> bool {
         //if estimate > p no need to do augmenting path
         if self.estimate > p {
@@ -226,7 +258,6 @@ mod test_adm_data {
     #[test]
     fn add_vertices_should_add_v_to_m(){
         let v = AdmData::new(2, Vec::default());
-        let l1: Vec<AdmData>= Vec::default();
         let l1: Vec<AdmData>= vec![
             AdmData::new(2, Vec::new()),
             AdmData::new(3, Vec::new())
