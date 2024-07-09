@@ -63,8 +63,37 @@ impl AdmData {
         }
     }
 
-    //TODO
-    fn add_vias(&mut self, v_r1_neighbours: VertexSet){
+    fn add_vias(&mut self, v_r1_neighbours: Vec<AdmData>, p:usize){
+        let mut counter : VertexMap<usize> = VertexMap::default();
+        for u in v_r1_neighbours{
+            for (w,_) in &self.m2{
+                if u.l1.contains(w){
+                    *counter.entry(*w).or_default() += 1;
+                    let num_vias_for_w = counter.get(w).unwrap();
+                    if num_vias_for_w <= &p {
+                        self.vias.insert(u.id);
+                    }
+                }
+            }
+        }
+        self.set_vias = true;
         return;
     }
+
+    //TODO
+    fn construct_g_for_augmenting_path(){
+
+    }
+
+    //TODO
+    fn augmenting_path(){
+        //TODO if no edges between M and vertex in L2 not in M
+        //and between M and vertex in R1 not in M
+        //do not do augmenting path
+    }
+}
+
+#[cfg(test)]
+mod test_adm_data {
+    //TODO
 }
