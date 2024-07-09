@@ -62,7 +62,12 @@ impl AdmData {
         return None;
     }
 
-    pub fn add_vertices(&mut self, v:Rc<AdmData>, v_neighbours:&VertexSet, p: usize){
+    pub fn remove_vertex_from_l1(&mut self, v:&Vertex){
+        self.l1.remove(v);
+        self.estimate -=1;
+    }
+
+    pub fn add_vertices_to_m(&mut self, v:Rc<AdmData>, v_neighbours:&VertexSet, p: usize){
         let mut l2_via_v: VertexSet = VertexSet::default();
 
         for u in v_neighbours {
@@ -100,6 +105,7 @@ impl AdmData {
         let new_m2 = M2{ matching_partner: v.id, unmatched_r1_neighbours: VertexSet::default()};
         self.m1.insert(v.id, new_m1);
         self.m2.insert(*v_matching_partner, new_m2);
+        self.estimate +=1;
     }
 
     //Remove an M2 vertex that is now moving into R
@@ -112,6 +118,7 @@ impl AdmData {
             None => {
                 self.m2.remove(v);
                 self.m1.remove(&v_matching_partner);
+                self.estimate -= 1;
                 return;
             }
             Some(_)=> {
@@ -150,7 +157,7 @@ mod test_adm_data {
             AdmData::new(3, Vec::new())
         ];
         let mut u = AdmData::new(1,  l1);
-        u.add_vertices(Rc::new(v), &vec![2, 3].iter().cloned().collect(), 1);
+        u.add_vertices_to_m(Rc::new(v), &vec![2, 3].iter().cloned().collect(), 1);
         assert_eq!(u.r1.len(), 0);
         assert!(!u.r1.contains_key(&2));
     }
@@ -169,7 +176,7 @@ mod test_adm_data {
         u.m1.insert(9, M1{ matching_partner : 7});
         u.m2.insert(7, M2{ matching_partner : 9, unmatched_r1_neighbours: VertexSet::default()});
 
-        u.add_vertices(Rc::new(v), &l2, 5);
+        u.add_vertices_to_m(Rc::new(v), &l2, 5);
 
         assert_eq!(u.m2.get(&6).unwrap().unmatched_r1_neighbours.len(),1);
         assert_eq!(u.m2.get(&7).unwrap().unmatched_r1_neighbours.len(),1);
@@ -189,7 +196,7 @@ mod test_adm_data {
         u.m1.insert(9, M1{ matching_partner : 7});
         u.m2.insert(7, M2{ matching_partner : 9, unmatched_r1_neighbours: unmatched});
 
-        u.add_vertices(Rc::new(v), &l2, 2);
+        u.add_vertices_to_m(Rc::new(v), &l2, 2);
         assert_eq!(u.m2.get(&7).unwrap().unmatched_r1_neighbours.len(),3);
     }
 
@@ -204,7 +211,7 @@ mod test_adm_data {
         let l2: VertexSet = vec![4].iter().cloned().collect();
         let mut u = AdmData::new(1, l1 );
 
-        u.add_vertices(Rc::new(v), &l2, 5);
+        u.add_vertices_to_m(Rc::new(v), &l2, 5);
 
         assert_eq!(u.m2.get(&4).unwrap().unmatched_r1_neighbours.len(),0);
         assert_eq!(u.m2.get(&4).unwrap().matching_partner,2);
@@ -212,7 +219,52 @@ mod test_adm_data {
     }
 
     #[test]
-    fn remove_m2(){
-        let v = AdmData::new(2, Vec::default());
+    fn remove_m2_should_remove_v_from_m_if_there_is_no_replacements(){
+        let mut u = AdmData::new(
+            1,
+            vec![
+                AdmData::new(2, Vec::new()),
+                AdmData::new(3, Vec::new())
+            ]
+        );
+        u.m2.insert(4, M2{ matching_partner : 5, unmatched_r1_neighbours: VertexSet::default()});
+        u.m1.insert(5, M1{ matching_partner : 4});
+        let v = AdmData::new(
+            5,
+            vec![
+                AdmData::new(2, Vec::new()),
+                AdmData::new(3, Vec::new())
+            ]
+        );
+        u.r1.insert(5,Rc::new(v));
+        u.remove_m2(&4,2);
+
+        assert!(!u.m1.contains_key(&5));
+        assert!(!u.m2.contains_key(&4));
+    }
+
+    #[test]
+    fn remove_m2_should_replace_v_in_m_if_there_is_no_replacements(){
+        let mut u = AdmData::new(
+            1,
+            vec![
+                AdmData::new(2, Vec::new()),
+                AdmData::new(3, Vec::new())
+            ]
+        );
+        u.m2.insert(4, M2{ matching_partner : 5, unmatched_r1_neighbours: VertexSet::default()});
+        u.m1.insert(5, M1{ matching_partner : 4});
+        let v = AdmData::new(
+            5,
+            vec![
+                AdmData::new(6, Vec::new()),
+                AdmData::new(7, Vec::new())
+            ]
+        );
+        u.r1.insert(5,Rc::new(v));
+        u.remove_m2(&4,2);
+
+        assert!(u.m1.contains_key(&5));
+        assert!(!u.m2.contains_key(&4));
     }
 }
