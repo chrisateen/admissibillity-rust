@@ -1,0 +1,19 @@
+[package]
+name = "admissibility-rust"
+version = "0.1.0"
+edition = "2021"
+author = "Algolab"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+graphbench = { git="https://github.com/microgravitas/graphbench" }
+flate2 = "1.0.22"
+mwmatching = "0.1.1"
+hopcroft-karp = "0.2.0"
+clap = { version = "4.0.32", features = ["derive"] }
+csv = "1.1"
+serde = { version = "1.0.145", features = ["derive"] }
+
+[dev-dependencies]
+rand = "0.8.5"
