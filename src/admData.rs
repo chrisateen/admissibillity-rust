@@ -1,32 +1,44 @@
 use std::rc::Rc;
-use graphbench::graph::{Vertex, VertexMap, VertexSet};
+use graphbench::editgraph::EditGraph;
+use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
+use graphbench::iterators::EdgeIterable;
 
 pub struct AdmData {
     id: Vertex,
     pub estimate: usize,
-    pub l1: VertexSet,
-    pub m: VertexMap<Rc<AdmData>>, //key vertex v in M and L2, value neighbour of v in M and R
-    pub vias: VertexMap<Rc<AdmData>>,
+    pub n1_in_l: VertexSet,
+    pub in_candidates: bool,
+    pub m: VertexMap<Rc<AdmData>>, //key vertex v in M and in L, value neighbour of v in M and in R
+    pub vias: VertexSet,
     pub set_vias: bool
 }
 
 impl AdmData {
-    pub fn new(id: Vertex, l1:VertexSet) -> Self{
+    pub fn new(v: Vertex, v_neighbours:VertexSet) -> Self{
         AdmData {
-            id,
-            estimate: l1.len(),
-            l1,
+            id: v,
+            estimate: v_neighbours.len(),
+            n1_in_l: v_neighbours,
+            in_candidates: false,
             m:VertexMap::default(),
-            vias: VertexMap::default(),
+            vias: VertexSet::default(),
             set_vias: false
         }
     }
 
-    //Adds a vertex v moving from L1 to R, to M
-    //if v has a neighbour not in M or in L1
-    fn add_to_m(&mut self, v: &Rc<AdmData>){
-        for u in &v.l1{
-            if !self.m.contains_key(&u) && !self.l1.contains(&u) && (u.clone() != self.id){
+    //When a vertex is added to candidates we no longer need M
+    pub fn delete_m(&mut self){
+        self.m = VertexMap::default();
+        self.in_candidates = true;
+    }
+
+    //When a vertex in N1(v) and in L is moving to R remove from L1 and see if it can be added to M
+    pub fn remove_n1_in_l(&mut self, v:Rc<AdmData>)  {
+        self.n1_in_l.remove(&v.id);
+        self.estimate -= 1;
+
+        for u in &v.n1_in_l {
+            if !self.m.contains_key(&u) && !self.n1_in_l.contains(&u) && (u.clone() != self.id){
                 self.m.insert(*u, Rc::clone(&v));
                 self.estimate +=1;
                 return;
@@ -34,17 +46,7 @@ impl AdmData {
         }
     }
 
-    //When a vertex in L1 is moving to R remove from L1 and see if it can be added to M
-    pub fn remove_l1(&mut self, p:usize, v:Rc<AdmData>)  {
-        self.l1.remove(&v.id);
-        self.estimate -= 1;
-        self.add_to_m(&v);
-        if self.set_vias && self.m.len()==p {
-            self.vias.insert(v.id, v);
-        }
-    }
-
-    //When a vertex v in L2 and M is moving to R remove from M
+    //When a vertex in L and M is moving to R remove from M
     // also check to see if we can replace the edge being removed
     pub fn remove_from_m(&mut self, v:Rc<AdmData>){
         //remove v from m if v is in m
@@ -52,12 +54,12 @@ impl AdmData {
 
         match v_neighbour_in_m {
             None => return,
-            Some(u) => {
+            Some(x) => {
                 self.estimate -=1;
                 //check if there is another vertex that can replace v
-                for w in &u.l1{
-                    if !self.m.contains_key(&w) && !self.l1.contains(&w) && (w.clone() != self.id) && (w.clone() != u.id){
-                        self.m.insert(*w, Rc::clone(&u));
+                for y in &x.n1_in_l {
+                    if !self.m.contains_key(&y) && !self.n1_in_l.contains(&y) && (y.clone() != self.id) && (y.clone() != x.id){
+                        self.m.insert(*y, Rc::clone(&x));
                         self.estimate +=1;
                         break;
                     }
@@ -66,65 +68,45 @@ impl AdmData {
         }
     }
 
-    fn add_vias(&mut self, v_r1_neighbours: Vec<Rc<AdmData>>, p:usize){
+
+    fn add_vias(&mut self, graph: &EditGraph, p:usize){
         let mut counter : VertexMap<usize> = VertexMap::default();
-        for u in v_r1_neighbours{
-            for (w,_) in &self.m {
-                if u.l1.contains(w){
-                    *counter.entry(*w).or_default() += 1;
-                    let num_vias_for_w = counter.get(w).unwrap();
-                    if num_vias_for_w <= &p {
-                        self.vias.insert(u.id.clone(), Rc::clone(&u));
+        let neighbours_v = graph.neighbours(&self.id);
+
+        let _ = self.n1_in_l.iter().map(|x| self.vias.insert(*x));
+        let _ = self.m.values().map(|x| self.vias.insert(x.id.clone()));
+
+        //For each L in M count how many neighbours it has in R and M
+        for (u,_) in &self.m {
+            for w in self.m.values(){
+                if w.n1_in_l.contains(&u){
+                    *counter.entry(*u).or_default() += 1;
+                }
+            }
+        }
+
+        for w in neighbours_v{
+            if !(self.m.contains_key(&w) && self.n1_in_l.contains(&w) ){
+                for (u,_) in &self.m {
+                    if graph.adjacent(u,w){
+                        *counter.entry(*u).or_default() += 1;
+
+                        if counter.get(u).unwrap() <= &(p + 1) {
+                            self.vias.insert(*w);
+                        }
                     }
                 }
             }
         }
-        self.set_vias = true;
-        return;
     }
 
-    fn construct_g_for_augmenting_path(&self) -> Vec<(Vertex, Vertex)> {
-        //TODO Might be better using hash map instead???
-        let mut edges : Vec<(Vertex,Vertex)> = Vec::default();
-        let mut vertices_in_m_and_r = Vec::default();
+    //TODO
+    fn construct_g_for_augmenting_path(&self) {
 
-        //Iterate through all vertices v in M and R1
-        //and add edges between vertices in M
-        //If v has neighbours in L1 not in M include one of them
-        for (_, v) in &self.m {
-            let mut edge_to_outside_m = false;
-            vertices_in_m_and_r.push(v.id);
-            for u in &v.l1 {
-                if self.m.contains_key(&u){
-                    edges.push((v.id, *u));
-                }else if !edge_to_outside_m {
-                    edges.push((v.id, *u));
-                    //also add edge from root to vertex in M and R and has neighbours in L1 not in M
-                    edges.push((v.id, self.id));
-                    edge_to_outside_m = true;
-                }
-            }
-        }
-
-        //Get edges between vertices in R that is not in M and vertices in M
-        for (v, v_adm_data) in &self.vias{
-            if !vertices_in_m_and_r.contains(v){
-                for u in &v_adm_data.l1{
-                    if self.m.contains_key(&u){
-                        edges.push((*v, *u));
-                    }
-                }
-            }
-        }
-
-        return edges;
     }
 
     //TODO
     fn augmenting_path(){
-        //TODO if no edges between M and vertex in L2 not in M
-        //and between M and vertex in R1 not in M
-        //do not do augmenting path
     }
 }
 

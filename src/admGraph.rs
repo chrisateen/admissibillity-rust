@@ -25,7 +25,7 @@ impl AdmGraph {
     //TODO enable initialisation of candidates from previous iterations
     pub fn initialise_candidates(&mut self, p: usize){
         for (u, adm_data) in &self.adm_data{
-            if adm_data.l1.len() <= p {
+            if adm_data.n1_in_l.len() <= p {
                 self.candidates.insert(*u);
             }
         }
