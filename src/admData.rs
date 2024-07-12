@@ -31,6 +31,11 @@ impl AdmData {
         return self.m.len() + self.n1_in_l.len() < p + 1;
     }
 
+    pub fn move_n1_in_l_to_r(&mut self, v:&Vertex){
+        self.n1_in_l.remove(v);
+        self.n1_in_r.insert(*v);
+    }
+
     //Checks if a vertex v in L is not in M or not in L1
     //If not that vertex can be added to M
     pub fn can_add_vertex_in_l_to_m(&self, v:&Vertex) -> bool{

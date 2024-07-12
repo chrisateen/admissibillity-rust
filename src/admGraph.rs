@@ -54,13 +54,16 @@ impl AdmGraph {
         let edges_in_m_v: Vec<(&Vertex,&Vertex)>  = v.m.iter().map(|x| x ).collect();
 
         for (u, x) in edges_in_m_v{
-            let x_n1_in_l = self.adm_data.get(x).unwrap().n1_in_l.clone();
+            let x_adm_data = self.adm_data.get_mut(x).unwrap();
+
+            //As v is moving to r, need to move v as an R1 neighbour of x
+            x_adm_data.move_n1_in_l_to_r(&v.id);
+
+            let x_n1_in_l = x_adm_data.n1_in_l.clone();
             let u_adm_data = &mut self.adm_data.get_mut(u).unwrap();
 
             //check if v is in m of u and if so remove
-            let v_neighbour_in_m = u_adm_data.m.remove(&v.id);
-
-            match v_neighbour_in_m {
+            match u_adm_data.m.remove(&v.id){
                 None => return,
                 //check to see if we can replace the edge x,v being removed
                 //by checking if v can be replaced by another vertex in L1 of x
