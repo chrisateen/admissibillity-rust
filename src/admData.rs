@@ -41,6 +41,11 @@ impl AdmData {
     pub fn can_add_vertex_in_l_to_m(&self, v:&Vertex) -> bool{
         return !self.m.contains_key(v) || !self.n1_in_l.contains(v) || v.clone() != self.id
     }
+
+    pub fn initialise_vias(&mut self) {
+        self.vias.extend(&self.n1_in_r);
+        let _ = self.m.values().map(|x| self.vias.insert(*x));
+    }
 }
 
 #[cfg(test)]

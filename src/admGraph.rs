@@ -64,7 +64,7 @@ impl AdmGraph {
 
             //check if v is in m of u and if so remove
             match u_adm_data.m.remove(&v.id){
-                None => return,
+                None => continue,
                 //check to see if we can replace the edge x,v being removed
                 //by checking if v can be replaced by another vertex in L1 of x
                 Some(x) => {
@@ -79,35 +79,36 @@ impl AdmGraph {
         }
     }
 
-    fn add_vias(&mut self, p:usize){
-        // let mut counter : VertexMap<usize> = VertexMap::default();
-        // let neighbours_v = graph.neighbours(&self.id);
-        //
-        // let _ = self.n1_in_l.iter().map(|x| self.vias.insert(*x));
-        // let _ = self.m.values().map(|x| self.vias.insert(x.id.clone()));
-        //
-        // //For each L in M count how many neighbours it has in R and M
-        // for (u,_) in &self.m {
-        //     for w in self.m.values(){
-        //         if w.n1_in_l.contains(&u){
-        //             *counter.entry(*u).or_default() += 1;
-        //         }
-        //     }
-        // }
-        //
-        // for w in neighbours_v{
-        //     if !(self.m.contains_key(&w) && self.n1_in_l.contains(&w) ){
-        //         for (u,_) in &self.m {
-        //             if graph.adjacent(u,w){
-        //                 *counter.entry(*u).or_default() += 1;
-        //
-        //                 if counter.get(u).unwrap() <= &(p + 1) {
-        //                     self.vias.insert(*w);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+    fn add_vias(&mut self, v: &mut AdmData, p:usize){
+        let mut counter : VertexMap<usize> = VertexMap::default();
+        let neighbours_v = self.graph.neighbours(&v.id);
+
+        v.initialise_vias();
+
+        //For each vertex in L of v & M of v
+        //count how many neighbours it has in R of v and in M of v
+        for (u,_) in &v.m {
+            for w in v.m.values(){
+                let w_adm_data = self.adm_data.get(w).unwrap();
+                if w_adm_data.n1_in_l.contains(&u){
+                    *counter.entry(*u).or_default() += 1;
+                }
+            }
+        }
+        
+        for w in neighbours_v{
+            if !(v.m.contains_key(&w) || v.n1_in_l.contains(&w) ){
+                for (u,_) in &v.m {
+                    if self.graph.adjacent(u,w){
+                        *counter.entry(*u).or_default() += 1;
+
+                        if counter.get(u).unwrap() <= &(p + 1) {
+                            v.vias.insert(*w);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     //TODO
