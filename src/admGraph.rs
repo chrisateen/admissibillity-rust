@@ -43,6 +43,7 @@ impl AdmGraph {
                 for w in &v.n1_in_l{
                     if u_adm_data.can_add_vertex_in_l_to_m(w){
                         u_adm_data.m.insert(*w, v.id);
+                        break;
                     }
                 }
             }
