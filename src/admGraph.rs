@@ -95,9 +95,9 @@ impl AdmGraph {
                 }
             }
         }
-        
+
         for w in neighbours_v{
-            if !(v.m.contains_key(&w) || v.n1_in_l.contains(&w) ){
+            if !(v.m.contains_key(&w) || v.n1_in_l.contains(&w)){
                 for (u,_) in &v.m {
                     if self.graph.adjacent(u,w){
                         *counter.entry(*u).or_default() += 1;
@@ -111,9 +111,39 @@ impl AdmGraph {
         }
     }
 
-    //TODO
-    fn construct_g_for_augmenting_path(&self) {
+    fn construct_g_for_augmenting_path(&self, v: &mut AdmData) {
+        let mut s = VertexSet::default();
+        let mut t = VertexSet::default();
+        let mut out : VertexMap<Vertex> = VertexMap::default();
 
+        let mut edges : VertexMap<Vertex> = VertexMap::default();
+
+        //Get all the edges between vias and vertices in L & M
+        for u in v.vias.difference(&v.n1_in_l){
+            for (w, w_neighbour_in_m) in &v.m{
+                // edges already in M
+                if *u == *w_neighbour_in_m {
+                    edges.insert(*u, *w);
+                //edges between L & M
+                }else if self.graph.adjacent(u, &w) {
+                    edges.insert(*w, *u);
+                //store an edge from a via not in M to a vertex in L & M
+                }else{
+                    t.insert(*w);
+                    out.insert(*w, *u);
+                }
+            }
+        }
+
+        for u in v.m.values(){
+            let u_adm_data = self.adm_data.get(u).unwrap();
+            for w in &u_adm_data.n1_in_l{
+                if !v.m.contains_key(&w) || !v.n1_in_l.contains(&w){
+                    s.insert(*u);
+                    out.insert(*u, *w);
+                }
+            }
+        }
     }
 
     //TODO DFS
