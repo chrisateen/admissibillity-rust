@@ -155,5 +155,38 @@ impl AdmGraph {
 
 #[cfg(test)]
 mod test_adm_graph {
-    //TODO
+    use graphbench::editgraph::EditGraph;
+    use graphbench::graph::{EdgeSet, MutableGraph};
+    use crate::admGraph::AdmGraph;
+
+    #[test]
+    fn initialise_candidates_should_add_vertices_with_degree_p_or_less_to_candidates(){
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6), (3,7)].iter().cloned().collect();
+        for (u,v) in edges.iter(){
+            graph.add_edge(u,v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+
+        adm_graph.initialise_candidates(2);
+
+        assert_eq!(adm_graph.candidates, vec![3,4,5,6,7].iter().cloned().collect());
+    }
+
+    #[test]
+    fn update_n1_of_v_should_move_vertex_to_m(){
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6)].iter().cloned().collect();
+        for (u,v) in edges.iter(){
+            graph.add_edge(u,v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+
+        let v_adm_data = adm_graph.adm_data.get_mut(&1).unwrap();
+        adm_graph.update_n1_of_v(v_adm_data);
+        let u_adm_data = adm_graph.adm_data.get(&2).unwrap();
+
+        assert_eq!(u_adm_data.m.len(),1);
+
+    }
 }

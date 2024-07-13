@@ -50,7 +50,6 @@ impl AdmData {
 
 #[cfg(test)]
 mod test_adm_data {
-    use graphbench::graph::{Vertex, VertexMap, VertexSet};
     use crate::admData::AdmData;
 
     #[test]
