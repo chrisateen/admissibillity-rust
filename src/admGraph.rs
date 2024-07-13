@@ -151,6 +151,17 @@ impl AdmGraph {
     fn augmenting_path(){
     }
 
+    fn remove_v_from_candidates(&mut self){
+        let mut v = self.candidates.clone().into_iter().next().unwrap();
+
+        self.candidates.remove(&v);
+
+        //removing and inserting back in adm data to get around rust ownership rules
+        let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+        self.update_n1_of_v(&v_adm_data);
+        self.adm_data.insert(v, v_adm_data);
+    }
+
 }
 
 #[cfg(test)]
@@ -174,7 +185,7 @@ mod test_adm_graph {
     }
 
     #[test]
-    fn update_n1_of_v_should_move_vertex_to_m(){
+    fn update_n1_of_v_should_move_v_to_m_of_u(){
         let mut graph = EditGraph::new();
         let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6)].iter().cloned().collect();
         for (u,v) in edges.iter(){
@@ -182,11 +193,29 @@ mod test_adm_graph {
         }
         let mut adm_graph = AdmGraph::new(graph);
 
-        let v_adm_data = adm_graph.adm_data.get_mut(&1).unwrap();
-        adm_graph.update_n1_of_v(v_adm_data);
+        let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        adm_graph.update_n1_of_v(&v_adm_data);
         let u_adm_data = adm_graph.adm_data.get(&2).unwrap();
 
         assert_eq!(u_adm_data.m.len(),1);
+    }
 
+    #[test]
+    fn update_n1_of_v_should_move_v_to_m_of_u_if_m_of_u_has_been_deleted(){
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6)].iter().cloned().collect();
+        for (u,v) in edges.iter(){
+            graph.add_edge(u,v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+
+        let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        let mut u_adm_data = adm_graph.adm_data.remove(&2).unwrap();
+        u_adm_data.deleted_m = true;
+        adm_graph.adm_data.insert(2,u_adm_data);
+
+        adm_graph.update_n1_of_v(&v_adm_data);
+
+        assert_eq!(adm_graph.adm_data.remove(&2).unwrap().m.len(),0);
     }
 }
