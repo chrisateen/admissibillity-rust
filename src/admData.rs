@@ -90,7 +90,7 @@ mod test_adm_data {
     #[test]
     fn can_add_vertex_in_l_to_m_returns_false_if_v_is_in_l(){
         let neighbours = vec![2, 3, 4, 5].iter().cloned().collect();
-        let mut v = AdmData::new(1,neighbours);
+        let v = AdmData::new(1,neighbours);
 
         assert!(!v.can_add_vertex_in_l_to_m(&2));
     }
@@ -98,7 +98,7 @@ mod test_adm_data {
     #[test]
     fn can_add_vertex_in_l_to_m_returns_false_if_v_has_same_id_as_self(){
         let neighbours = vec![2, 3, 4, 5].iter().cloned().collect();
-        let mut v = AdmData::new(1,neighbours);
+        let v = AdmData::new(1,neighbours);
 
         assert!(!v.can_add_vertex_in_l_to_m(&1));
     }
