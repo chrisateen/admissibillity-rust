@@ -1,30 +1,36 @@
+use crate::admData::AdmData;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
-use crate::admData::AdmData;
 
 pub struct AdmGraph {
     graph: EditGraph,
     l: VertexSet,
     r: VertexSet,
     candidates: VertexSet,
-    adm_data: VertexMap<AdmData>
+    adm_data: VertexMap<AdmData>,
 }
 
 impl AdmGraph {
-    pub fn new(graph: EditGraph) -> Self{
+    pub fn new(graph: EditGraph) -> Self {
         let mut adm_data = VertexMap::default();
         let l = graph.vertices().copied().collect();
-        for u in graph.vertices(){
+        for u in graph.vertices() {
             //for each vertex in the graph get all of its neighbours
             let adm_vertex = AdmData::new(*u, graph.neighbours(u).copied().collect());
-            adm_data.insert(*u,adm_vertex);
+            adm_data.insert(*u, adm_vertex);
         }
-        AdmGraph{graph, l , r: VertexSet::default(), candidates: VertexSet::default() , adm_data}
+        AdmGraph {
+            graph,
+            l,
+            r: VertexSet::default(),
+            candidates: VertexSet::default(),
+            adm_data,
+        }
     }
 
     //TODO enable initialisation of candidates from previous iterations
-    pub fn initialise_candidates(&mut self, p: usize){
-        for (u, adm_data) in &self.adm_data{
+    pub fn initialise_candidates(&mut self, p: usize) {
+        for (u, adm_data) in &self.adm_data {
             if adm_data.n1_in_l.len() <= p {
                 self.candidates.insert(*u);
             }
@@ -33,15 +39,15 @@ impl AdmGraph {
 
     //When a vertex v is moving into R remove v as an L1 from all of its neighbours
     //check if v can be added to M
-    fn update_n1_of_v(&mut self, v:&AdmData){
-        for u in self.graph.neighbours(&v.id){
+    fn update_n1_of_v(&mut self, v: &AdmData) {
+        for u in self.graph.neighbours(&v.id) {
             let u_adm_data = self.adm_data.get_mut(u).unwrap();
             u_adm_data.n1_in_l.remove(&v.id);
             u_adm_data.n1_in_r.insert(v.id);
 
-            if !u_adm_data.deleted_m{
-                for w in &v.n1_in_l{
-                    if u_adm_data.can_add_vertex_in_l_to_m(w){
+            if !u_adm_data.deleted_m {
+                for w in &v.n1_in_l {
+                    if u_adm_data.can_add_vertex_in_l_to_m(w) {
                         u_adm_data.m.insert(*w, v.id);
                         break;
                     }
@@ -51,10 +57,10 @@ impl AdmGraph {
     }
 
     //When a vertex v is moving into R for each of v's L2 neighbours replace/remove v from M
-    fn update_l2_of_v(&mut self, v:&AdmData){
-        let edges_in_m_v: Vec<(&Vertex,&Vertex)>  = v.m.iter().map(|x| x ).collect();
+    fn update_l2_of_v(&mut self, v: &AdmData) {
+        let edges_in_m_v: Vec<(&Vertex, &Vertex)> = v.m.iter().collect();
 
-        for (u, x) in edges_in_m_v{
+        for (u, x) in edges_in_m_v {
             let x_adm_data = self.adm_data.get_mut(x).unwrap();
 
             //As v is moving to r, need to move v as an R1 neighbour of x
@@ -64,7 +70,7 @@ impl AdmGraph {
             let u_adm_data = &mut self.adm_data.get_mut(u).unwrap();
 
             //check if v is in m of u and if so remove
-            match u_adm_data.m.remove(&v.id){
+            match u_adm_data.m.remove(&v.id) {
                 None => continue,
                 //check to see if we can replace the edge x,v being removed
                 //by checking if v can be replaced by another vertex in L1 of x
@@ -80,27 +86,27 @@ impl AdmGraph {
         }
     }
 
-    fn add_vias(&mut self, v: &mut AdmData, p:usize){
-        let mut counter : VertexMap<usize> = VertexMap::default();
+    fn add_vias(&mut self, v: &mut AdmData, p: usize) {
+        let mut counter: VertexMap<usize> = VertexMap::default();
         let neighbours_v = self.graph.neighbours(&v.id);
 
         v.initialise_vias();
 
         //For each vertex in L of v & M of v
         //count how many neighbours it has in R of v and in M of v
-        for (u,_) in &v.m {
-            for w in v.m.values(){
+        for u in v.m.keys() {
+            for w in v.m.values() {
                 let w_adm_data = self.adm_data.get(w).unwrap();
-                if w_adm_data.n1_in_l.contains(&u){
+                if w_adm_data.n1_in_l.contains(u) {
                     *counter.entry(*u).or_default() += 1;
                 }
             }
         }
 
-        for w in neighbours_v{
-            if !(v.m.contains_key(&w) || v.n1_in_l.contains(&w)){
-                for (u,_) in &v.m {
-                    if self.graph.adjacent(u,w){
+        for w in neighbours_v {
+            if !(v.m.contains_key(w) || v.n1_in_l.contains(w)) {
+                for u in v.m.keys() {
+                    if self.graph.adjacent(u, w) {
                         *counter.entry(*u).or_default() += 1;
 
                         if counter.get(u).unwrap() <= &(p + 1) {
@@ -115,31 +121,31 @@ impl AdmGraph {
     fn construct_g_for_augmenting_path(&self, v: &mut AdmData) {
         let mut s = VertexSet::default();
         let mut t = VertexSet::default();
-        let mut out : VertexMap<Vertex> = VertexMap::default();
+        let mut out: VertexMap<Vertex> = VertexMap::default();
 
-        let mut edges : VertexMap<Vertex> = VertexMap::default();
+        let mut edges: VertexMap<Vertex> = VertexMap::default();
 
         //Get all the edges between vias and vertices in L & M
-        for u in v.vias.difference(&v.n1_in_l){
-            for (w, w_neighbour_in_m) in &v.m{
+        for u in v.vias.difference(&v.n1_in_l) {
+            for (w, w_neighbour_in_m) in &v.m {
                 // edges already in M
                 if *u == *w_neighbour_in_m {
                     edges.insert(*u, *w);
                 //edges between L & M
-                }else if self.graph.adjacent(u, &w) {
+                } else if self.graph.adjacent(u, w) {
                     edges.insert(*w, *u);
                 //store an edge from a via not in M to a vertex in L & M
-                }else{
+                } else {
                     t.insert(*w);
                     out.insert(*w, *u);
                 }
             }
         }
 
-        for u in v.m.values(){
+        for u in v.m.values() {
             let u_adm_data = self.adm_data.get(u).unwrap();
-            for w in &u_adm_data.n1_in_l{
-                if !v.m.contains_key(&w) || !v.n1_in_l.contains(&w){
+            for w in &u_adm_data.n1_in_l {
+                if !v.m.contains_key(w) || !v.n1_in_l.contains(w) {
                     s.insert(*u);
                     out.insert(*u, *w);
                 }
@@ -148,48 +154,58 @@ impl AdmGraph {
     }
 
     //TODO DFS
-    fn augmenting_path(){
-    }
+    fn augmenting_path() {}
 
-    fn remove_v_from_candidates(&mut self){
-        let mut v = self.candidates.clone().into_iter().next().unwrap();
-
+    fn remove_v_from_candidates(&mut self) {
+        let v = self.candidates.clone().into_iter().next().unwrap();
         self.candidates.remove(&v);
+        self.l.remove(&v);
+        self.r.insert(v);
 
         //removing and inserting back in adm data to get around rust ownership rules
         let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+
         self.update_n1_of_v(&v_adm_data);
+
         self.adm_data.insert(v, v_adm_data);
     }
-
 }
 
 #[cfg(test)]
 mod test_adm_graph {
+    use crate::admGraph::AdmGraph;
     use graphbench::editgraph::EditGraph;
     use graphbench::graph::{EdgeSet, MutableGraph};
-    use crate::admGraph::AdmGraph;
 
     #[test]
-    fn initialise_candidates_should_add_vertices_with_degree_p_or_less_to_candidates(){
+    fn initialise_candidates_should_add_vertices_with_degree_p_or_less_to_candidates() {
         let mut graph = EditGraph::new();
-        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6), (3,7)].iter().cloned().collect();
-        for (u,v) in edges.iter(){
-            graph.add_edge(u,v);
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7)]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
         }
         let mut adm_graph = AdmGraph::new(graph);
 
         adm_graph.initialise_candidates(2);
 
-        assert_eq!(adm_graph.candidates, vec![3,4,5,6,7].iter().cloned().collect());
+        assert_eq!(
+            adm_graph.candidates,
+            [3, 4, 5, 6, 7].iter().cloned().collect()
+        );
     }
 
     #[test]
-    fn update_n1_of_v_should_move_v_to_m_of_u(){
+    fn update_n1_of_v_should_move_v_to_m_of_u() {
         let mut graph = EditGraph::new();
-        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6)].iter().cloned().collect();
-        for (u,v) in edges.iter(){
-            graph.add_edge(u,v);
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
         }
         let mut adm_graph = AdmGraph::new(graph);
 
@@ -197,25 +213,58 @@ mod test_adm_graph {
         adm_graph.update_n1_of_v(&v_adm_data);
         let u_adm_data = adm_graph.adm_data.get(&2).unwrap();
 
-        assert_eq!(u_adm_data.m.len(),1);
+        assert_eq!(u_adm_data.m.len(), 1);
     }
 
     #[test]
-    fn update_n1_of_v_should_move_v_to_m_of_u_if_m_of_u_has_been_deleted(){
+    fn update_n1_of_v_should_move_v_to_m_of_u_if_m_of_u_has_been_deleted() {
         let mut graph = EditGraph::new();
-        let edges: EdgeSet =  vec![(1, 2), (1, 3), (1,4), (2,5), (2,6)].iter().cloned().collect();
-        for (u,v) in edges.iter(){
-            graph.add_edge(u,v);
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
         }
         let mut adm_graph = AdmGraph::new(graph);
 
         let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
         let mut u_adm_data = adm_graph.adm_data.remove(&2).unwrap();
         u_adm_data.deleted_m = true;
-        adm_graph.adm_data.insert(2,u_adm_data);
+        adm_graph.adm_data.insert(2, u_adm_data);
 
         adm_graph.update_n1_of_v(&v_adm_data);
 
-        assert_eq!(adm_graph.adm_data.remove(&2).unwrap().m.len(),0);
+        assert_eq!(adm_graph.adm_data.remove(&2).unwrap().m.len(), 0);
+    }
+
+    #[test]
+    fn update_l2_of_v_should_remove_v_from_m_of_u() {
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+    }
+
+    #[test] //TODO
+    fn remove_v_from_candidates() {
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+
+        adm_graph.initialise_candidates(3);
+
+        adm_graph.remove_v_from_candidates();
     }
 }
