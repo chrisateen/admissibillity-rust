@@ -1,14 +1,14 @@
 use crate::admData::AdmData;
+use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
-use crate::augmentingPath::AugmentingPath;
 
 pub struct AdmGraph {
     graph: EditGraph,
     l: VertexSet,
     r: VertexSet,
     candidates: VertexSet,
-    adm_data: VertexMap<AdmData>,
+    pub(crate) adm_data: VertexMap<AdmData>,
 }
 
 impl AdmGraph {
@@ -16,7 +16,6 @@ impl AdmGraph {
         let mut adm_data = VertexMap::default();
         let l = graph.vertices().copied().collect();
         for u in graph.vertices() {
-            //for each vertex in the graph get all of its neighbours
             let adm_vertex = AdmData::new(*u, graph.neighbours(u).copied().collect());
             adm_data.insert(*u, adm_vertex);
         }
@@ -110,7 +109,6 @@ impl AdmGraph {
                     *counter.entry(*u).or_default() += 1;
 
                     if counter.get(u).unwrap() <= &(p + 1) {
-                        //v.vias.insert(*w);
                         vias_to_add.insert(*w);
                     }
                 }
@@ -119,35 +117,41 @@ impl AdmGraph {
         v.vias.extend(vias_to_add);
     }
 
-    fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
+    pub(crate) fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
         let mut augmenting_path = AugmentingPath::new(v.id);
+
+        let vertices_in_r_and_m: Vec<&Vertex> = v.m.values().collect();
 
         //Get all the edges between vias and vertices in L & M
         for u in v.vias.difference(&v.n1_in_l) {
             for (w, w_neighbour_in_m) in &v.m {
-                // edges already in M
+                //Gets matching edges already in M
                 if *u == *w_neighbour_in_m {
                     augmenting_path.edges.insert(*u, *w);
-                //edges between L & M
                 } else if self.graph.adjacent(u, w) {
-                    augmenting_path.edges.insert(*w, *u);
-                //store an edge from a via not in M to a vertex in L & M
-                } else {
-                    augmenting_path.t.insert(*w);
-                    let out_w = augmenting_path.out.entry(*w).or_default();
-                    out_w.insert(*u);
+                    //Gets edges between vertices in M (excluding matching edges)
+                    if vertices_in_r_and_m.contains(&u) {
+                        augmenting_path.edges.insert(*w, *u);
+                    } else {
+                        //Gets edges between a vertex in L and M and a vertex R not in M
+                        augmenting_path.t.insert(*w);
+                        let out_w = augmenting_path.out.entry(*w).or_default();
+                        out_w.insert(*u);
+                    }
                 }
             }
         }
 
-        for u in v.m.values() {
+        //Gets edges between vertex u in R & M and vertex w in L but not in M
+        for u in vertices_in_r_and_m {
             let u_adm_data = self.adm_data.get(u).unwrap();
             for w in &u_adm_data.n1_in_l {
-                if !v.m.contains_key(w) || !v.n1_in_l.contains(w) {
+                if !v.m.contains_key(w) && !v.n1_in_l.contains(w) && v.id != w.clone() {
+                    println!("{} u {}", u, w);
                     augmenting_path.s.insert(*u);
                     let out_u = augmenting_path.out.entry(*u).or_default();
                     out_u.insert(*w);
-                    break;
+                    //break; TODO Do we need multiple out edges for each vertex
                 }
             }
         }
@@ -304,8 +308,8 @@ mod test_adm_graph {
         assert!(v_adm_data.vias.contains(&10) ^ v_adm_data.vias.contains(&11));
     }
 
-    #[test] //TODO
-    fn construct_g_for_augmenting_path(){
+    #[test]
+    fn construct_g_for_augmenting_path_should_create_edges_for_augmenting_path() {
         let mut graph = EditGraph::new();
         let edges: EdgeSet = [
             (1, 2),
@@ -323,11 +327,12 @@ mod test_adm_graph {
             (9, 10),
             (9, 11),
             (4, 12),
-            (4, 13)
+            (4, 13),
+            (6, 14),
         ]
-            .iter()
-            .cloned()
-            .collect();
+        .iter()
+        .cloned()
+        .collect();
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
@@ -335,6 +340,20 @@ mod test_adm_graph {
 
         adm_graph.initialise_candidates(3);
         let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        [4, 6, 8, 10, 11].map(|x| v_adm_data.move_n1_in_l_to_r(&x));
+        [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.m.insert(l, r));
+        v_adm_data.vias.extend([2, 3, 4, 6, 8, 10, 11]);
+
+        let aug_path = adm_graph.construct_g_for_augmenting_path(&mut v_adm_data);
+
+        assert_eq!(aug_path.t.len(), 1);
+        assert!(aug_path.t.contains(&9));
+        assert_eq!(aug_path.s.len(), 2);
+        assert!(aug_path.s.contains(&4));
+        assert!(aug_path.s.contains(&6));
+        //Check some of the edges are inserted in the right direction
+        assert_eq!(aug_path.edges.get(&4).unwrap(), &5);
+        assert_eq!(aug_path.edges.get(&5).unwrap(), &6);
     }
 
     #[test] //TODO
