@@ -1,6 +1,7 @@
 use crate::admData::AdmData;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
+use crate::augmentingPath::AugmentingPath;
 
 pub struct AdmGraph {
     graph: EditGraph,
@@ -118,26 +119,23 @@ impl AdmGraph {
         v.vias.extend(vias_to_add);
     }
 
-    fn construct_g_for_augmenting_path(&self, v: &mut AdmData) {
-        let mut s = VertexSet::default();
-        let mut t = VertexSet::default();
-        let mut out: VertexMap<Vertex> = VertexMap::default();
-
-        let mut edges: VertexMap<Vertex> = VertexMap::default();
+    fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
+        let mut augmenting_path = AugmentingPath::new(v.id);
 
         //Get all the edges between vias and vertices in L & M
         for u in v.vias.difference(&v.n1_in_l) {
             for (w, w_neighbour_in_m) in &v.m {
                 // edges already in M
                 if *u == *w_neighbour_in_m {
-                    edges.insert(*u, *w);
+                    augmenting_path.edges.insert(*u, *w);
                 //edges between L & M
                 } else if self.graph.adjacent(u, w) {
-                    edges.insert(*w, *u);
+                    augmenting_path.edges.insert(*w, *u);
                 //store an edge from a via not in M to a vertex in L & M
                 } else {
-                    t.insert(*w);
-                    out.insert(*w, *u);
+                    augmenting_path.t.insert(*w);
+                    let out_w = augmenting_path.out.entry(*w).or_default();
+                    out_w.insert(*u);
                 }
             }
         }
@@ -146,11 +144,14 @@ impl AdmGraph {
             let u_adm_data = self.adm_data.get(u).unwrap();
             for w in &u_adm_data.n1_in_l {
                 if !v.m.contains_key(w) || !v.n1_in_l.contains(w) {
-                    s.insert(*u);
-                    out.insert(*u, *w);
+                    augmenting_path.s.insert(*u);
+                    let out_u = augmenting_path.out.entry(*u).or_default();
+                    out_u.insert(*w);
+                    break;
                 }
             }
         }
+        return augmenting_path;
     }
 
     //TODO DFS
@@ -305,7 +306,35 @@ mod test_adm_graph {
 
     #[test] //TODO
     fn construct_g_for_augmenting_path(){
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (1, 6),
+            (1, 8),
+            (1, 10),
+            (1, 11),
+            (4, 5),
+            (6, 7),
+            (8, 9),
+            (5, 6),
+            (7, 8),
+            (9, 10),
+            (9, 11),
+            (4, 12),
+            (4, 13)
+        ]
+            .iter()
+            .cloned()
+            .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
 
+        adm_graph.initialise_candidates(3);
+        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
     }
 
     #[test] //TODO
