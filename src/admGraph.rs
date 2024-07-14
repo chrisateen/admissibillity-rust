@@ -151,15 +151,11 @@ impl AdmGraph {
                     augmenting_path.s.insert(*u);
                     let out_u = augmenting_path.out.entry(*u).or_default();
                     out_u.insert(*w);
-                    //break; TODO Do we need multiple out edges for each vertex
                 }
             }
         }
         return augmenting_path;
     }
-
-    //TODO DFS
-    fn augmenting_path() {}
 
     //TODO
     fn remove_v_from_candidates(&mut self) {
