@@ -27,6 +27,15 @@ impl AdmData {
         self.deleted_m = true;
     }
 
+    pub fn get_neighbours_in_r_not_in_m(&self) -> Vec<&u32> {
+        let n1_in_m: VertexSet = self.m.iter().map(|(l, r)| *r).collect();
+        return self
+            .n1_in_r
+            .iter()
+            .filter(|x| !n1_in_m.contains(x))
+            .collect();
+    }
+
     pub fn is_maximal_matching_size_p(&self, p: usize) -> bool {
         self.m.len() + self.n1_in_l.len() < p + 1
     }
@@ -43,7 +52,7 @@ impl AdmData {
     }
 
     pub fn initialise_vias(&mut self) {
-        self.vias.extend(&self.n1_in_r);
+        self.vias.extend(&self.n1_in_l);
         self.vias.extend(self.m.values());
     }
 }
@@ -58,10 +67,26 @@ mod test_adm_data {
         let mut v = AdmData::new(1, neighbours);
         v.m.insert(6, 7);
         v.m.insert(9, 10);
+
         v.delete_m();
 
         assert!(v.deleted_m);
         assert_eq!(v.m.len(), 0);
+    }
+
+    #[test]
+    fn get_neighbours_in_r_not_in_m() {
+        let neighbours = [2, 3].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+        v.n1_in_r = [4, 5, 6, 7, 8].iter().cloned().collect();
+        v.m.insert(9, 6);
+        v.m.insert(10, 7);
+
+        let actual = v.get_neighbours_in_r_not_in_m();
+
+        assert_eq!(actual.len(), 3);
+        assert!(!actual.contains(&&6));
+        assert!(!actual.contains(&&7));
     }
 
     #[test]
@@ -122,17 +147,14 @@ mod test_adm_data {
     }
 
     #[test]
-    fn initialise_vias_should_add_vertices_in_r() {
+    fn initialise_vias_should_add_vertices_in_n1_and_r_in_m() {
         let l1 = [2, 3, 4, 5].iter().cloned().collect();
-        let r1 = [6, 7, 8].iter().cloned().collect();
         let mut v = AdmData::new(1, l1);
-        v.n1_in_r = r1;
-
-        v.m.insert(9, 10);
-        v.m.insert(11, 12);
+        v.m.insert(6, 7);
+        v.m.insert(8, 9);
 
         v.initialise_vias();
 
-        assert_eq!(v.vias, [6, 7, 8, 10, 12].iter().cloned().collect());
+        assert_eq!(v.vias, [2, 3, 4, 5, 7, 9].iter().cloned().collect());
     }
 }

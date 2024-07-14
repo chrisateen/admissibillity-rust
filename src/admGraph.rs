@@ -88,7 +88,6 @@ impl AdmGraph {
 
     fn add_vias(&mut self, v: &mut AdmData, p: usize) {
         let mut counter: VertexMap<usize> = VertexMap::default();
-        let neighbours_v = self.graph.neighbours(&v.id);
 
         v.initialise_vias();
 
@@ -103,19 +102,20 @@ impl AdmGraph {
             }
         }
 
-        for w in neighbours_v {
-            if !(v.m.contains_key(w) || v.n1_in_l.contains(w)) {
-                for u in v.m.keys() {
-                    if self.graph.adjacent(u, w) {
-                        *counter.entry(*u).or_default() += 1;
+        let mut vias_to_add = VertexSet::default();
+        for w in v.get_neighbours_in_r_not_in_m() {
+            for u in v.m.keys() {
+                if self.graph.adjacent(u, w) {
+                    *counter.entry(*u).or_default() += 1;
 
-                        if counter.get(u).unwrap() <= &(p + 1) {
-                            v.vias.insert(*w);
-                        }
+                    if counter.get(u).unwrap() <= &(p + 1) {
+                        //v.vias.insert(*w);
+                        vias_to_add.insert(*w);
                     }
                 }
             }
         }
+        v.vias.extend(vias_to_add);
     }
 
     fn construct_g_for_augmenting_path(&self, v: &mut AdmData) {
@@ -156,6 +156,7 @@ impl AdmGraph {
     //TODO DFS
     fn augmenting_path() {}
 
+    //TODO
     fn remove_v_from_candidates(&mut self) {
         let v = self.candidates.clone().into_iter().next().unwrap();
         self.candidates.remove(&v);
@@ -166,6 +167,7 @@ impl AdmGraph {
         let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
 
         self.update_n1_of_v(&v_adm_data);
+        self.update_l2_of_v(&v_adm_data);
 
         self.adm_data.insert(v, v_adm_data);
     }
@@ -239,9 +241,9 @@ mod test_adm_graph {
     }
 
     #[test]
-    fn update_l2_of_v_should_remove_v_from_m_of_u() {
+    fn update_l2_of_v_should_remove_v_from_m_of_u_and_replace_edge() {
         let mut graph = EditGraph::new();
-        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
+        let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (4, 5), (5, 6), (5, 7), (4, 8)]
             .iter()
             .cloned()
             .collect();
@@ -249,6 +251,61 @@ mod test_adm_graph {
             graph.add_edge(u, v);
         }
         let mut adm_graph = AdmGraph::new(graph);
+
+        adm_graph.initialise_candidates(3);
+        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        v_adm_data.move_n1_in_l_to_r(&4);
+        v_adm_data.m.insert(5, 4);
+        let mut u_adm_data = adm_graph.adm_data.remove(&5).unwrap();
+        u_adm_data.move_n1_in_l_to_r(&4);
+        u_adm_data.m.insert(1, 4);
+        adm_graph.adm_data.insert(5, u_adm_data);
+
+        adm_graph.update_l2_of_v(&v_adm_data);
+
+        assert!(adm_graph.adm_data.get(&5).unwrap().m.contains_key(&8));
+    }
+
+    #[test]
+    fn add_vias_should_store_p_plus_1_vias_for_each_l_in_m_of_v() {
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (1, 6),
+            (1, 8),
+            (1, 10),
+            (1, 11),
+            (4, 5),
+            (6, 7),
+            (8, 9),
+            (5, 6),
+            (5, 8),
+            (5, 10),
+            (5, 11),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+        let mut adm_graph = AdmGraph::new(graph);
+
+        adm_graph.initialise_candidates(3);
+        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        [4, 6, 8, 10, 11].map(|x| v_adm_data.move_n1_in_l_to_r(&x));
+        [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.m.insert(l, r));
+
+        adm_graph.add_vias(&mut v_adm_data, 3);
+        assert_eq!(v_adm_data.vias.len(), 6);
+        assert!(v_adm_data.vias.contains(&10) ^ v_adm_data.vias.contains(&11));
+    }
+
+    #[test] //TODO
+    fn construct_g_for_augmenting_path(){
+
     }
 
     #[test] //TODO
