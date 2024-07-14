@@ -28,7 +28,7 @@ impl AdmData {
     }
 
     pub fn get_neighbours_in_r_not_in_m(&self) -> Vec<&u32> {
-        let n1_in_m: VertexSet = self.m.iter().map(|(l, r)| *r).collect();
+        let n1_in_m: VertexSet = self.m.values().copied().collect();
         return self
             .n1_in_r
             .iter()

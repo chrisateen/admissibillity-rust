@@ -20,68 +20,65 @@ impl AugmentingPath {
     }
 
     pub fn should_do_augmenting_path(&self) -> bool {
-        self.s.len() > 0 && self.t.len() > 0
+        !self.s.is_empty() && !self.t.is_empty()
     }
 
     fn dfs(&self, v: Vertex, visited: &mut VertexMap<bool>, path: &mut Vec<Vertex>) {
-        visited.insert(v,true);
+        visited.insert(v, true);
         path.push(v);
 
-        match self.edges.get(&v){
-            None => return,
-            Some(v_neighbour) =>{
-                match visited.get(v_neighbour){
-                    None => {
+        match self.edges.get(&v) {
+            None => (),
+            Some(v_neighbour) => match visited.get(v_neighbour) {
+                None => {
+                    self.dfs(*v_neighbour, visited, path);
+                }
+                Some(has_visited) => {
+                    if !has_visited {
                         self.dfs(*v_neighbour, visited, path);
                     }
-                    Some(has_visited) => {
-                        if !has_visited{
-                            self.dfs(*v_neighbour, visited, path);
-                        }
-                    }
                 }
-            }
+            },
         }
     }
 
-    fn get_new_matching_edges(&self, path: &Vec<Vertex>) -> VertexMap<Vertex>{
+    fn get_new_matching_edges(&self, path: &Vec<Vertex>) -> VertexMap<Vertex> {
         let mut m: VertexMap<Vertex> = VertexMap::default();
 
-        for (index, v) in path.into_iter().enumerate() {
-            if index == 0{
+        for (index, v) in path.iter().enumerate() {
+            if index == 0 {
                 m.insert(*self.out.get(v).unwrap().iter().next().unwrap(), *v);
-            }
-            else if index == path.len() -1{
+            } else if index == path.len() - 1 {
                 m.insert(*v, *self.out.get(v).unwrap().iter().next().unwrap());
-            }
-            else if index % 2 ==1{
+            } else if index % 2 == 1 {
                 m.insert(*v, *path.get(index + 1).unwrap());
             }
         }
-        return m;
+        m
     }
 
-    pub fn find_augmenting_path(&self, p:usize) -> Option<VertexMap<Vertex>>{
+    pub fn find_augmenting_path(&self, p: usize) -> Option<VertexMap<Vertex>> {
         //If there is no start an end points there is no need doing augmenting path
-        if !self.should_do_augmenting_path(){
-            return None
+        if !self.should_do_augmenting_path() {
+            return None;
         }
 
-        let mut longest_path : Vec<Vertex> = Vec::new();
+        let mut longest_path: Vec<Vertex> = Vec::new();
 
-        for v in &self.s{
-            let visited : &mut VertexMap<bool> = &mut VertexMap::default();
+        for v in &self.s {
+            let visited: &mut VertexMap<bool> = &mut VertexMap::default();
             let path = &mut Vec::new();
             self.dfs(*v, visited, path);
-            if longest_path.len() < path.len(){
+            let end_v = path.last().unwrap();
+            //Add a check to ensure path ends in vertex in t
+            if longest_path.len() < path.len() && self.t.contains(end_v) {
                 longest_path = path.clone();
-                println!("{longest_path:?}");
             }
         }
 
-        if longest_path.len() >= p*2{
+        if longest_path.len() >= p * 2 {
             Some(self.get_new_matching_edges(&longest_path))
-        }else{
+        } else {
             None
         }
     }
@@ -93,7 +90,7 @@ mod test_augmenting_path {
 
     #[test]
     fn test_should_do_augmenting_path_should_return_false_if_s_and_t_is_empty() {
-        let mut aug_path = AugmentingPath::new(1);
+        let aug_path = AugmentingPath::new(1);
         assert!(!aug_path.should_do_augmenting_path());
     }
 
@@ -122,23 +119,43 @@ mod test_augmenting_path {
     #[test]
     fn test_find_augmenting_path_should_return_edges_in_matching() {
         let mut aug_path = AugmentingPath::new(1);
-        aug_path.s.extend([2,6]);
-        aug_path.t.extend([7,9]);
+        aug_path.s.extend([2, 6]);
+        aug_path.t.extend([7, 9]);
         aug_path.out.entry(2).or_default().insert(10);
         aug_path.out.entry(6).or_default().insert(11);
         aug_path.out.entry(7).or_default().insert(12);
         aug_path.out.entry(9).or_default().insert(13);
 
         let edges = [(2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)];
-        for (v, u) in edges{
-            aug_path.edges.insert(v,u);
+        for (v, u) in edges {
+            aug_path.edges.insert(v, u);
         }
 
         let path = aug_path.find_augmenting_path(4).unwrap();
 
-        assert_eq!(path.len(),5);
+        assert_eq!(path.len(), 5);
         assert!(path.contains_key(&10));
         assert!(path.contains_key(&9));
         assert!(path.contains_key(&3));
+    }
+
+    #[test]
+    fn test_find_augmenting_path_should_none_if_matching_is_p_or_less() {
+        let mut aug_path = AugmentingPath::new(1);
+        aug_path.s.extend([2, 6]);
+        aug_path.t.extend([7, 9]);
+        aug_path.out.entry(2).or_default().insert(10);
+        aug_path.out.entry(6).or_default().insert(11);
+        aug_path.out.entry(7).or_default().insert(12);
+        aug_path.out.entry(9).or_default().insert(13);
+
+        let edges = [(2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)];
+        for (v, u) in edges {
+            aug_path.edges.insert(v, u);
+        }
+
+        let path = aug_path.find_augmenting_path(5);
+
+        assert!(path.is_none());
     }
 }

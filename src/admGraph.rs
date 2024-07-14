@@ -7,8 +7,9 @@ pub struct AdmGraph {
     graph: EditGraph,
     l: VertexSet,
     r: VertexSet,
+    checks: VertexSet,
     candidates: VertexSet,
-    pub(crate) adm_data: VertexMap<AdmData>,
+    adm_data: VertexMap<AdmData>,
 }
 
 impl AdmGraph {
@@ -23,6 +24,7 @@ impl AdmGraph {
             graph,
             l,
             r: VertexSet::default(),
+            checks: VertexSet::default(),
             candidates: VertexSet::default(),
             adm_data,
         }
@@ -52,6 +54,7 @@ impl AdmGraph {
                         break;
                     }
                 }
+                self.checks.insert(*u);
             }
         }
     }
@@ -83,6 +86,7 @@ impl AdmGraph {
                     }
                 }
             }
+            self.checks.insert(*u);
         }
     }
 
@@ -117,7 +121,7 @@ impl AdmGraph {
         v.vias.extend(vias_to_add);
     }
 
-    pub(crate) fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
+    fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
         let mut augmenting_path = AugmentingPath::new(v.id);
 
         let vertices_in_r_and_m: Vec<&Vertex> = v.m.values().collect();
@@ -146,7 +150,7 @@ impl AdmGraph {
         for u in vertices_in_r_and_m {
             let u_adm_data = self.adm_data.get(u).unwrap();
             for w in &u_adm_data.n1_in_l {
-                if !v.m.contains_key(w) && !v.n1_in_l.contains(w) && v.id != w.clone() {
+                if !v.m.contains_key(w) && !v.n1_in_l.contains(w) && v.id != *w {
                     println!("{} u {}", u, w);
                     augmenting_path.s.insert(*u);
                     let out_u = augmenting_path.out.entry(*u).or_default();
@@ -154,23 +158,57 @@ impl AdmGraph {
                 }
             }
         }
-        return augmenting_path;
+        augmenting_path
     }
 
-    //TODO
-    fn remove_v_from_candidates(&mut self) {
-        let v = self.candidates.clone().into_iter().next().unwrap();
-        self.candidates.remove(&v);
-        self.l.remove(&v);
-        self.r.insert(v);
+    fn do_checks(&mut self, p: usize) {
+        for v in &self.checks.clone() {
+            let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+            if v_adm_data.is_maximal_matching_size_p(p) {
+                if v_adm_data.vias.is_empty() {
+                    self.add_vias(&mut v_adm_data, p);
+                }
+                let aug_path = self.construct_g_for_augmenting_path(&mut v_adm_data);
+                let new_path = aug_path.find_augmenting_path(p);
 
-        //removing and inserting back in adm data to get around rust ownership rules
-        let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+                match new_path {
+                    Some(path) => {
+                        v_adm_data.m = path;
+                    }
+                    None => {
+                        v_adm_data.delete_m();
+                        self.candidates.insert(*v);
+                    }
+                }
+            }
+            self.adm_data.insert(*v, v_adm_data);
+            self.checks.remove(v);
+        }
+    }
 
-        self.update_n1_of_v(&v_adm_data);
-        self.update_l2_of_v(&v_adm_data);
+    pub fn remove_v_from_candidates(&mut self, p: usize) -> Option<Vertex> {
+        let v = self.candidates.clone().into_iter().next();
 
-        self.adm_data.insert(v, v_adm_data);
+        match v {
+            Some(v) => {
+                self.candidates.remove(&v);
+                self.l.remove(&v);
+                self.r.insert(v);
+
+                //removing and inserting back in adm data to get around rust ownership rules
+                let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+
+                self.update_n1_of_v(&v_adm_data);
+                self.update_l2_of_v(&v_adm_data);
+
+                self.adm_data.insert(v, v_adm_data);
+
+                self.do_checks(p);
+
+                Some(v)
+            }
+            None => None,
+        }
     }
 }
 
@@ -352,8 +390,8 @@ mod test_adm_graph {
         assert_eq!(aug_path.edges.get(&5).unwrap(), &6);
     }
 
-    #[test] //TODO
-    fn remove_v_from_candidates() {
+    #[test]
+    fn remove_v_from_candidates_should_move_v_from_l_to_r() {
         let mut graph = EditGraph::new();
         let edges: EdgeSet = [(1, 2), (1, 3), (1, 4), (2, 5), (2, 6)]
             .iter()
@@ -362,10 +400,13 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(graph.clone());
 
         adm_graph.initialise_candidates(3);
 
-        adm_graph.remove_v_from_candidates();
+        adm_graph.remove_v_from_candidates(3);
+
+        assert_eq!(adm_graph.r.len(), 1);
+        assert_eq!(adm_graph.l.len(), 5);
     }
 }
