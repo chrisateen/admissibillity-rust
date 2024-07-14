@@ -44,7 +44,29 @@ impl AugmentingPath {
         }
     }
 
-    pub fn find_augmenting_path(&self, p:usize) -> Option<Vec<Vertex>>{
+    fn get_new_matching_edges(&self, path: &Vec<Vertex>) -> VertexMap<Vertex>{
+        let mut m: VertexMap<Vertex> = VertexMap::default();
+
+        for (index, v) in path.into_iter().enumerate() {
+            if index == 0{
+                m.insert(*self.out.get(v).unwrap().iter().next().unwrap(), *v);
+            }
+            else if index == path.len() -1{
+                m.insert(*v, *self.out.get(v).unwrap().iter().next().unwrap());
+            }
+            else if index % 2 ==1{
+                m.insert(*v, *path.get(index + 1).unwrap());
+            }
+        }
+        return m;
+    }
+
+    pub fn find_augmenting_path(&self, p:usize) -> Option<VertexMap<Vertex>>{
+        //If there is no start an end points there is no need doing augmenting path
+        if !self.should_do_augmenting_path(){
+            return None
+        }
+
         let mut longest_path : Vec<Vertex> = Vec::new();
 
         for v in &self.s{
@@ -57,8 +79,8 @@ impl AugmentingPath {
             }
         }
 
-        if longest_path.len() == p*2{
-            Some(longest_path)
+        if longest_path.len() >= p*2{
+            Some(self.get_new_matching_edges(&longest_path))
         }else{
             None
         }
@@ -98,7 +120,7 @@ mod test_augmenting_path {
     }
 
     #[test]
-    fn test_find_augmenting_path() {
+    fn test_find_augmenting_path_should_return_edges_in_matching() {
         let mut aug_path = AugmentingPath::new(1);
         aug_path.s.extend([2,6]);
         aug_path.t.extend([7,9]);
@@ -107,10 +129,16 @@ mod test_augmenting_path {
         aug_path.out.entry(7).or_default().insert(12);
         aug_path.out.entry(9).or_default().insert(13);
 
-        let _ = [(2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
-            .iter()
-            .map(|(u,v)| {aug_path.edges.insert(*u, *v)});
+        let edges = [(2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)];
+        for (v, u) in edges{
+            aug_path.edges.insert(v,u);
+        }
 
-        aug_path.find_augmenting_path(4);
+        let path = aug_path.find_augmenting_path(4).unwrap();
+
+        assert_eq!(path.len(),5);
+        assert!(path.contains_key(&10));
+        assert!(path.contains_key(&9));
+        assert!(path.contains_key(&3));
     }
 }
