@@ -1,4 +1,5 @@
 use graphbench::graph::{Vertex, VertexMap, VertexSet};
+use crate::augmentingPath::MatchingEdges;
 
 pub struct AdmData {
     pub id: Vertex,
@@ -38,6 +39,17 @@ impl AdmData {
     //If not that vertex can be added to M
     pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
         !(self.m.contains_key(v) || self.n1_in_l.contains(v) || v.eq(&self.id))
+    }
+
+    //Update m when an augmenting path has been found
+    pub fn update_m(&mut self, edges: &MatchingEdges) {
+        for (v,_) in &edges.e_remove{
+            self.m.remove(&v);
+        }
+
+        for (v,u) in &edges.e_add{
+            self.m.insert(*v, *u);
+        }
     }
 }
 

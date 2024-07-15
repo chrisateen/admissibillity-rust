@@ -138,11 +138,11 @@ impl<'a> AdmGraph<'a> {
             let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
             if v_adm_data.is_maximal_matching_size_p(p) {
                 let aug_path = self.construct_g_for_augmenting_path(&mut v_adm_data);
-                let new_path = aug_path.find_augmenting_path(p-v_adm_data.n1_in_l.len());
+                let new_path = aug_path.find_augmenting_path();
 
                 match new_path {
                     Some(path) => {
-                        v_adm_data.m = path;
+                        v_adm_data.update_m(&path);
                     }
                     None => {
                         self.candidates.insert(*v);
