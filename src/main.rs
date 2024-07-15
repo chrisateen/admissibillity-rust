@@ -1,4 +1,3 @@
-mod admData;
 mod admGraph;
 mod augmentingPath;
 

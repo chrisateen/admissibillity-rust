@@ -41,15 +41,15 @@ impl<'a> AdmGraph<'a> {
 
     //When a vertex v is moving into R remove v as an L1 from all of its neighbours
     //check if v can be added to M
-    fn update_n1_of_v(&mut self, v: &AdmData) {
-        for u in self.graph.neighbours(&v.id) {
+    fn update_n1_of_v(&mut self, v:&AdmData){
+        for u in self.graph.neighbours(&v.id){
             let u_adm_data = self.adm_data.get_mut(u).unwrap();
             u_adm_data.n1_in_l.remove(&v.id);
             u_adm_data.n1_in_r.insert(v.id);
 
-            if !u_adm_data.deleted_m {
-                for w in &v.n1_in_l {
-                    if u_adm_data.can_add_vertex_in_l_to_m(w) {
+            if !u_adm_data.deleted_m{
+                for w in &v.n1_in_l{
+                    if u_adm_data.can_add_vertex_in_l_to_m(w){
                         u_adm_data.m.insert(*w, v.id);
                         break;
                     }
@@ -60,10 +60,10 @@ impl<'a> AdmGraph<'a> {
     }
 
     //When a vertex v is moving into R for each of v's L2 neighbours replace/remove v from M
-    fn update_l2_of_v(&mut self, v: &AdmData) {
-        let edges_in_m_v: Vec<(&Vertex, &Vertex)> = v.m.iter().collect();
+    fn update_l2_of_v(&mut self, v:&AdmData){
+        let edges_in_m_v: Vec<(&Vertex,&Vertex)>  = v.m.iter().map(|x| x ).collect();
 
-        for (u, x) in edges_in_m_v {
+        for (u, x) in edges_in_m_v{
             let x_adm_data = self.adm_data.get_mut(x).unwrap();
 
             //As v is moving to r, need to move v as an R1 neighbour of x
@@ -73,7 +73,7 @@ impl<'a> AdmGraph<'a> {
             let u_adm_data = &mut self.adm_data.get_mut(u).unwrap();
 
             //check if v is in m of u and if so remove
-            match u_adm_data.m.remove(&v.id) {
+            match u_adm_data.m.remove(&v.id){
                 None => continue,
                 //check to see if we can replace the edge x,v being removed
                 //by checking if v can be replaced by another vertex in L1 of x

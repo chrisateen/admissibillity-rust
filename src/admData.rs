@@ -25,28 +25,19 @@ impl AdmData {
         self.deleted_m = true;
     }
 
-    pub fn get_neighbours_in_r_not_in_m(&self) -> Vec<&u32> {
-        let n1_in_m: VertexSet = self.m.values().copied().collect();
-        return self
-            .n1_in_r
-            .iter()
-            .filter(|x| !n1_in_m.contains(x))
-            .collect();
+    pub fn is_maximal_matching_size_p(&self, p:usize) -> bool {
+        return self.m.len() + self.n1_in_l.len() < p + 1;
     }
 
-    pub fn is_maximal_matching_size_p(&self, p: usize) -> bool {
-        self.m.len() + self.n1_in_l.len() < p + 1
-    }
-
-    pub fn move_n1_in_l_to_r(&mut self, v: &Vertex) {
+    pub fn move_n1_in_l_to_r(&mut self, v:&Vertex){
         self.n1_in_l.remove(v);
         self.n1_in_r.insert(*v);
     }
 
     //Checks if a vertex v in L is not in M or not in L1
     //If not that vertex can be added to M
-    pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
-        !(self.m.contains_key(v) || self.n1_in_l.contains(v) || v.eq(&self.id))
+    pub fn can_add_vertex_in_l_to_m(&self, v:&Vertex) -> bool{
+        return !self.m.contains_key(v) || !self.n1_in_l.contains(v) || v.clone() != self.id
     }
 }
 
