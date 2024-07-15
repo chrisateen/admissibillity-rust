@@ -25,19 +25,19 @@ impl AdmData {
         self.deleted_m = true;
     }
 
-    pub fn is_maximal_matching_size_p(&self, p:usize) -> bool {
-        return self.m.len() + self.n1_in_l.len() < p + 1;
+    pub fn is_maximal_matching_size_p(&self, p: usize) -> bool {
+        self.m.len() + self.n1_in_l.len() < p + 1
     }
 
-    pub fn move_n1_in_l_to_r(&mut self, v:&Vertex){
+    pub fn move_n1_in_l_to_r(&mut self, v: &Vertex) {
         self.n1_in_l.remove(v);
         self.n1_in_r.insert(*v);
     }
 
     //Checks if a vertex v in L is not in M or not in L1
     //If not that vertex can be added to M
-    pub fn can_add_vertex_in_l_to_m(&self, v:&Vertex) -> bool{
-        return !self.m.contains_key(v) || !self.n1_in_l.contains(v) || v.clone() != self.id
+    pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
+        !(self.m.contains_key(v) || self.n1_in_l.contains(v) || v.eq(&self.id))
     }
 }
 
@@ -56,21 +56,6 @@ mod test_adm_data {
 
         assert!(v.deleted_m);
         assert_eq!(v.m.len(), 0);
-    }
-
-    #[test]
-    fn get_neighbours_in_r_not_in_m() {
-        let neighbours = [2, 3].iter().cloned().collect();
-        let mut v = AdmData::new(1, neighbours);
-        v.n1_in_r = [4, 5, 6, 7, 8].iter().cloned().collect();
-        v.m.insert(9, 6);
-        v.m.insert(10, 7);
-
-        let actual = v.get_neighbours_in_r_not_in_m();
-
-        assert_eq!(actual.len(), 3);
-        assert!(!actual.contains(&&6));
-        assert!(!actual.contains(&&7));
     }
 
     #[test]

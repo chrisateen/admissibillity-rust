@@ -1,6 +1,8 @@
 mod admGraph;
 mod augmentingPath;
 
+mod admData;
+
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
@@ -28,7 +30,7 @@ fn load_graph(network_path: String, network: String) -> EditGraph {
 
 fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
     let num_vertices = graph.num_vertices();
-    let mut adm_graph = AdmGraph::new(&graph);
+    let mut adm_graph = AdmGraph::new(graph);
     let mut ordering = VertexSet::default();
 
     adm_graph.initialise_candidates(p);
@@ -68,7 +70,7 @@ fn main() {
 
 #[cfg(test)]
 mod test_main {
-    use crate::admGraph::AdmGraph;
+
     use crate::compute_ordering;
     use graphbench::editgraph::EditGraph;
     use graphbench::graph::{EdgeSet, MutableGraph};
@@ -152,7 +154,6 @@ mod test_main {
 
         let mut p = 1;
         loop {
-            let mut adm_graph = AdmGraph::new(&graph);
             let is_p = compute_ordering(p, &graph);
             if is_p {
                 break;
