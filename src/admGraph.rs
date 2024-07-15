@@ -3,8 +3,8 @@ use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
 
-pub struct AdmGraph {
-    graph: EditGraph,
+pub struct AdmGraph<'a> {
+    graph: &'a EditGraph,
     l: VertexSet,
     r: VertexSet,
     checks: VertexSet,
@@ -12,8 +12,8 @@ pub struct AdmGraph {
     adm_data: VertexMap<AdmData>,
 }
 
-impl AdmGraph {
-    pub fn new(graph: EditGraph) -> Self {
+impl<'a> AdmGraph<'a> {
+    pub fn new(graph: &'a EditGraph) -> Self {
         let mut adm_data = VertexMap::default();
         let l = graph.vertices().copied().collect();
         for u in graph.vertices() {
@@ -151,7 +151,6 @@ impl AdmGraph {
             let u_adm_data = self.adm_data.get(u).unwrap();
             for w in &u_adm_data.n1_in_l {
                 if !v.m.contains_key(w) && !v.n1_in_l.contains(w) && v.id != *w {
-                    println!("{} u {}", u, w);
                     augmenting_path.s.insert(*u);
                     let out_u = augmenting_path.out.entry(*u).or_default();
                     out_u.insert(*w);
@@ -228,7 +227,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(2);
 
@@ -248,7 +247,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
         adm_graph.update_n1_of_v(&v_adm_data);
@@ -267,7 +266,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
         let mut u_adm_data = adm_graph.adm_data.remove(&2).unwrap();
@@ -289,7 +288,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(3);
         let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
@@ -330,7 +329,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(3);
         let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
@@ -370,7 +369,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph);
+        let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(3);
         let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
@@ -400,7 +399,7 @@ mod test_adm_graph {
         for (u, v) in edges.iter() {
             graph.add_edge(u, v);
         }
-        let mut adm_graph = AdmGraph::new(graph.clone());
+        let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(3);
 

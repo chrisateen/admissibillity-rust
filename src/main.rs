@@ -27,9 +27,9 @@ fn load_graph(network_path: String, network: String) -> EditGraph {
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
 
-fn compute_ordering(p: usize, graph: EditGraph) -> bool {
+fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
     let num_vertices = graph.num_vertices();
-    let mut adm_graph = AdmGraph::new(graph);
+    let mut adm_graph = AdmGraph::new(&graph);
     let mut ordering = VertexSet::default();
 
     adm_graph.initialise_candidates(p);
@@ -51,13 +51,25 @@ fn main() {
     let network = args.network;
     let mut p = args.p;
 
+    let mut is_p;
+
     let graph = load_graph(network_path, network);
+
+    loop {
+        println!("p {}", p);
+        is_p = compute_ordering(p, &graph);
+        if is_p {
+            break;
+        }
+        p += 1;
+    }
 
     println!("p is {}", args.p);
 }
 
 #[cfg(test)]
 mod test_main {
+    use crate::admGraph::AdmGraph;
     use crate::compute_ordering;
     use graphbench::editgraph::EditGraph;
     use graphbench::graph::{EdgeSet, Graph, MutableGraph};
@@ -82,7 +94,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, graph));
+        assert!(compute_ordering(4, &graph));
     }
 
     #[test]
@@ -96,7 +108,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, graph));
+        assert!(compute_ordering(4, &graph));
     }
 
     #[test]
@@ -110,6 +122,45 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(!compute_ordering(2, graph));
+        assert!(!compute_ordering(2, &graph));
+    }
+
+    #[test]
+    pub fn test_admissibility_returns_correct_p_value() {
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [
+            (1, 2),
+            (1, 9),
+            (2, 3),
+            (2, 9),
+            (3, 4),
+            (3, 7),
+            (3, 9),
+            (4, 5),
+            (4, 6),
+            (5, 6),
+            (5, 8),
+            (6, 7),
+            (7, 8),
+            (8, 9),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+
+        let mut p = 1;
+        loop {
+            let mut adm_graph = AdmGraph::new(&graph);
+            let is_p = compute_ordering(p, &graph);
+            if is_p {
+                break;
+            }
+            p += 1;
+        }
+
+        assert_eq!(p, 3);
     }
 }
