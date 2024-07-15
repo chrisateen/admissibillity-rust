@@ -141,7 +141,6 @@ impl<'a> AdmGraph<'a> {
                         v_adm_data.m = path;
                     }
                     None => {
-                        v_adm_data.delete_m();
                         self.candidates.insert(*v);
                     }
                 }
@@ -161,14 +160,18 @@ impl<'a> AdmGraph<'a> {
                 self.r.insert(v);
 
                 //removing and inserting back in adm data to get around rust ownership rules
-                let v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+                let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
 
                 self.update_n1_of_v(&v_adm_data);
                 self.update_l2_of_v(&v_adm_data);
 
+                v_adm_data.delete_m();
+
                 self.adm_data.insert(v, v_adm_data);
 
                 self.do_checks(p);
+
+
 
                 Some(v)
             }
