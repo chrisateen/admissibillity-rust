@@ -72,7 +72,7 @@ mod test_main {
     use crate::admGraph::AdmGraph;
     use crate::compute_ordering;
     use graphbench::editgraph::EditGraph;
-    use graphbench::graph::{EdgeSet, Graph, MutableGraph};
+    use graphbench::graph::{EdgeSet, MutableGraph};
 
     #[test]
     pub fn compute_ordering_returns_true_if_all_v_in_g_has_neighbours_on_or_below_p() {

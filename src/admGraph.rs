@@ -90,51 +90,20 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
-    fn add_vias(&mut self, v: &mut AdmData, p: usize) {
-        let mut counter: VertexMap<usize> = VertexMap::default();
-
-        v.initialise_vias();
-
-        //For each vertex in L of v & M of v
-        //count how many neighbours it has in R of v and in M of v
-        for u in v.m.keys() {
-            for w in v.m.values() {
-                let w_adm_data = self.adm_data.get(w).unwrap();
-                if w_adm_data.n1_in_l.contains(u) {
-                    *counter.entry(*u).or_default() += 1;
-                }
-            }
-        }
-
-        let mut vias_to_add = VertexSet::default();
-        for w in v.get_neighbours_in_r_not_in_m() {
-            for u in v.m.keys() {
-                if self.graph.adjacent(u, w) {
-                    *counter.entry(*u).or_default() += 1;
-
-                    if counter.get(u).unwrap() <= &(p + 1) {
-                        vias_to_add.insert(*w);
-                    }
-                }
-            }
-        }
-        v.vias.extend(vias_to_add);
-    }
-
     fn construct_g_for_augmenting_path(&self, v: &mut AdmData) -> AugmentingPath {
         let mut augmenting_path = AugmentingPath::new(v.id);
 
         let vertices_in_r_and_m: Vec<&Vertex> = v.m.values().collect();
 
-        //Get all the edges between vias and vertices in L & M
-        for u in v.vias.difference(&v.n1_in_l) {
+        //Get all the edges between vertices in r and vertices in L & M
+        for u in  &v.n1_in_r{
             for (w, w_neighbour_in_m) in &v.m {
                 //Gets matching edges already in M
                 if *u == *w_neighbour_in_m {
                     augmenting_path.edges.insert(*u, *w);
-                } else if self.graph.adjacent(u, w) {
+                } else if self.graph.adjacent(&u, w) {
                     //Gets edges between vertices in M (excluding matching edges)
-                    if vertices_in_r_and_m.contains(&u) {
+                    if vertices_in_r_and_m.contains(&&u) {
                         augmenting_path.edges.insert(*w, *u);
                     } else {
                         //Gets edges between a vertex in L and M and a vertex R not in M
@@ -164,9 +133,6 @@ impl<'a> AdmGraph<'a> {
         for v in &self.checks.clone() {
             let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
             if v_adm_data.is_maximal_matching_size_p(p) {
-                if v_adm_data.vias.is_empty() {
-                    self.add_vias(&mut v_adm_data, p);
-                }
                 let aug_path = self.construct_g_for_augmenting_path(&mut v_adm_data);
                 let new_path = aug_path.find_augmenting_path(p);
 
@@ -305,43 +271,6 @@ mod test_adm_graph {
     }
 
     #[test]
-    fn add_vias_should_store_p_plus_1_vias_for_each_l_in_m_of_v() {
-        let mut graph = EditGraph::new();
-        let edges: EdgeSet = [
-            (1, 2),
-            (1, 3),
-            (1, 4),
-            (1, 6),
-            (1, 8),
-            (1, 10),
-            (1, 11),
-            (4, 5),
-            (6, 7),
-            (8, 9),
-            (5, 6),
-            (5, 8),
-            (5, 10),
-            (5, 11),
-        ]
-        .iter()
-        .cloned()
-        .collect();
-        for (u, v) in edges.iter() {
-            graph.add_edge(u, v);
-        }
-        let mut adm_graph = AdmGraph::new(&graph);
-
-        adm_graph.initialise_candidates(3);
-        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
-        [4, 6, 8, 10, 11].map(|x| v_adm_data.move_n1_in_l_to_r(&x));
-        [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.m.insert(l, r));
-
-        adm_graph.add_vias(&mut v_adm_data, 3);
-        assert_eq!(v_adm_data.vias.len(), 6);
-        assert!(v_adm_data.vias.contains(&10) ^ v_adm_data.vias.contains(&11));
-    }
-
-    #[test]
     fn construct_g_for_augmenting_path_should_create_edges_for_augmenting_path() {
         let mut graph = EditGraph::new();
         let edges: EdgeSet = [
@@ -375,7 +304,6 @@ mod test_adm_graph {
         let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
         [4, 6, 8, 10, 11].map(|x| v_adm_data.move_n1_in_l_to_r(&x));
         [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.m.insert(l, r));
-        v_adm_data.vias.extend([2, 3, 4, 6, 8, 10, 11]);
 
         let aug_path = adm_graph.construct_g_for_augmenting_path(&mut v_adm_data);
 

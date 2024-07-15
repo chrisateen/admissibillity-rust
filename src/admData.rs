@@ -6,7 +6,6 @@ pub struct AdmData {
     pub n1_in_r: VertexSet,
     pub deleted_m: bool,
     pub m: VertexMap<Vertex>, //key vertex v in M and in L, value neighbour of v in M and in R
-    pub vias: VertexSet,
 }
 
 impl AdmData {
@@ -17,7 +16,6 @@ impl AdmData {
             n1_in_r: VertexSet::default(),
             deleted_m: false,
             m: VertexMap::default(),
-            vias: VertexSet::default(),
         }
     }
 
@@ -49,11 +47,6 @@ impl AdmData {
     //If not that vertex can be added to M
     pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
         !(self.m.contains_key(v) || self.n1_in_l.contains(v) || v.eq(&self.id))
-    }
-
-    pub fn initialise_vias(&mut self) {
-        self.vias.extend(&self.n1_in_l);
-        self.vias.extend(self.m.values());
     }
 }
 
@@ -144,17 +137,5 @@ mod test_adm_data {
         v.m.insert(6, 7);
 
         assert!(v.can_add_vertex_in_l_to_m(&8));
-    }
-
-    #[test]
-    fn initialise_vias_should_add_vertices_in_n1_and_r_in_m() {
-        let l1 = [2, 3, 4, 5].iter().cloned().collect();
-        let mut v = AdmData::new(1, l1);
-        v.m.insert(6, 7);
-        v.m.insert(8, 9);
-
-        v.initialise_vias();
-
-        assert_eq!(v.vias, [2, 3, 4, 5, 7, 9].iter().cloned().collect());
     }
 }
