@@ -42,18 +42,19 @@ impl AugmentingPath {
         }
     }
 
-    fn get_new_matching_edges(&self, path: &Vec<Vertex>) -> VertexMap<Vertex> {
+    fn get_new_matching_edges(&self, path: &mut Vec<Vertex>) -> VertexMap<Vertex> {
         let mut m: VertexMap<Vertex> = VertexMap::default();
 
-        for (index, v) in path.iter().enumerate() {
-            if index == 0 {
-                m.insert(*self.out.get(v).unwrap().iter().next().unwrap(), *v);
-            } else if index == path.len() - 1 {
-                m.insert(*v, *self.out.get(v).unwrap().iter().next().unwrap());
-            } else if index % 2 == 1 {
-                m.insert(*v, *path.get(index + 1).unwrap());
-            }
+        let first = path.remove(0);
+        m.insert(*self.out.get(&first).unwrap().iter().next().unwrap(), first);
+
+        let last = path.remove(path.len() - 1);
+        m.insert(last, *self.out.get(&last).unwrap().iter().next().unwrap());
+
+        for c in path.chunks(2) {
+            m.insert(*c.get(0).unwrap(), *c.get(1).unwrap());
         }
+
         m
     }
 
@@ -63,29 +64,29 @@ impl AugmentingPath {
             return None;
         }
 
-        let mut longest_path: Vec<Vertex> = Vec::new();
-
         for v in &self.s {
             let visited: &mut VertexMap<bool> = &mut VertexMap::default();
             let path = &mut Vec::new();
             self.dfs(*v, visited, path);
             let end_v = path.last().unwrap();
-            //Add a check to ensure path ends in vertex in t
-            if longest_path.len() < path.len() && self.t.contains(end_v) {
-                longest_path = path.clone();
+
+            if self.t.contains(end_v) {
+                let m = self.get_new_matching_edges(path);
+                if m.len() == p + 1 {
+                    println!("{:?}", path);
+                    println!("Len = {}, P = {}", m.len(), p);
+                    return Some(m);
+                }
             }
         }
 
-        if longest_path.len() >= p * 2 {
-            Some(self.get_new_matching_edges(&longest_path))
-        } else {
-            None
-        }
+        return None
     }
 }
 
 #[cfg(test)]
 mod test_augmenting_path {
+    use graphbench::graph::Vertex;
     use crate::augmentingPath::AugmentingPath;
 
     #[test]
@@ -114,6 +115,23 @@ mod test_augmenting_path {
         aug_path.s.insert(2);
         aug_path.t.insert(3);
         assert!(aug_path.should_do_augmenting_path());
+    }
+
+    #[test]
+    fn test_get_new_matching_edges_should_return_edges_in_matching(){
+        let mut aug_path = AugmentingPath::new(1);
+        aug_path.s.extend([2, 6]);
+        aug_path.t.extend([7, 9]);
+        let mut path: Vec<Vertex> = Vec::new();
+        [2,3,4,5,6,7,8,9].map(|x| {path.push(*&x)});
+        aug_path.out.entry(2).or_default().insert(10);
+        aug_path.out.entry(6).or_default().insert(11);
+        aug_path.out.entry(7).or_default().insert(12);
+        aug_path.out.entry(9).or_default().insert(13);
+
+        let actual = aug_path.get_new_matching_edges(&mut path);
+
+        assert_eq!(actual.contains_key(&10), true);
     }
 
     #[test]
