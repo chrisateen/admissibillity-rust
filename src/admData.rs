@@ -1,5 +1,5 @@
-use graphbench::graph::{Vertex, VertexMap, VertexSet};
 use crate::augmentingPath::MatchingEdges;
+use graphbench::graph::{Vertex, VertexMap, VertexSet};
 
 pub struct AdmData {
     pub id: Vertex,
@@ -43,11 +43,11 @@ impl AdmData {
 
     //Update m when an augmenting path has been found
     pub fn update_m(&mut self, edges: &MatchingEdges) {
-        for (v,_) in &edges.e_remove{
-            self.m.remove(&v);
+        for v in edges.e_remove.keys() {
+            self.m.remove(v);
         }
 
-        for (v,u) in &edges.e_add{
+        for (v, u) in &edges.e_add {
             self.m.insert(*v, *u);
         }
     }

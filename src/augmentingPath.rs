@@ -3,7 +3,7 @@ use graphbench::graph::{Vertex, VertexMap, VertexSet};
 pub struct MatchingEdges {
     //key vertex v in L, value neighbour of v in M and in R
     pub e_add: VertexMap<Vertex>,
-    pub e_remove: VertexMap<Vertex>
+    pub e_remove: VertexMap<Vertex>,
 }
 
 pub struct AugmentingPath {
@@ -49,23 +49,29 @@ impl AugmentingPath {
     }
 
     fn get_new_matching_edges(&self, path: &mut Vec<Vertex>) -> MatchingEdges {
-        let mut edges = MatchingEdges{
+        let mut edges = MatchingEdges {
             e_add: VertexMap::default(),
             e_remove: VertexMap::default(),
         };
 
         for c in path.chunks(2) {
-            edges.e_remove.insert(*c.get(1).unwrap(), *c.get(0).unwrap());
+            edges
+                .e_remove
+                .insert(*c.get(1).unwrap(), *c.first().unwrap());
         }
 
         let first = path.remove(0);
-        edges.e_add.insert(*self.out.get(&first).unwrap().iter().next().unwrap(), first);
+        edges
+            .e_add
+            .insert(*self.out.get(&first).unwrap().iter().next().unwrap(), first);
 
         let last = path.remove(path.len() - 1);
-        edges.e_add.insert(last, *self.out.get(&last).unwrap().iter().next().unwrap());
+        edges
+            .e_add
+            .insert(last, *self.out.get(&last).unwrap().iter().next().unwrap());
 
         for c in path.chunks(2) {
-            edges.e_add.insert(*c.get(0).unwrap(), *c.get(1).unwrap());
+            edges.e_add.insert(*c.first().unwrap(), *c.get(1).unwrap());
         }
 
         edges
@@ -88,14 +94,14 @@ impl AugmentingPath {
                 return Some(m);
             }
         }
-        return None
+        None
     }
 }
 
 #[cfg(test)]
 mod test_augmenting_path {
-    use graphbench::graph::Vertex;
     use crate::augmentingPath::AugmentingPath;
+    use graphbench::graph::Vertex;
 
     #[test]
     fn test_should_do_augmenting_path_should_return_false_if_s_and_t_is_empty() {
@@ -126,12 +132,13 @@ mod test_augmenting_path {
     }
 
     #[test]
-    fn test_get_new_matching_edges_should_return_edges_in_matching_and_edges_to_remove_from_matching(){
+    fn test_get_new_matching_edges_should_return_edges_in_matching_and_edges_to_remove_from_matching(
+    ) {
         let mut aug_path = AugmentingPath::new(1);
         aug_path.s.extend([2, 6]);
         aug_path.t.extend([7, 9]);
         let mut path: Vec<Vertex> = Vec::new();
-        [2,3,4,5,6,7,8,9].map(|x| {path.push(*&x)});
+        [2, 3, 4, 5, 6, 7, 8, 9].map(|x| path.push(x));
         aug_path.out.entry(2).or_default().insert(10);
         aug_path.out.entry(6).or_default().insert(11);
         aug_path.out.entry(7).or_default().insert(12);
@@ -139,8 +146,8 @@ mod test_augmenting_path {
 
         let edges = aug_path.get_new_matching_edges(&mut path);
 
-        assert_eq!(edges.e_add.contains_key(&10), true);
-        assert_eq!(edges.e_remove.contains_key(&3), true);
+        assert!(edges.e_add.contains_key(&10));
+        assert!(edges.e_remove.contains_key(&3));
     }
 
     #[test]
