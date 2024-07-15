@@ -64,7 +64,7 @@ fn main() {
         p += 1;
     }
 
-    println!("p is {}", args.p);
+    println!("p is {}", p);
 }
 
 #[cfg(test)]
