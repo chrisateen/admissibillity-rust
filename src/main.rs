@@ -1,5 +1,5 @@
-mod admData;
 mod admGraph;
+mod admData;
 
 use clap::{Parser};
 
