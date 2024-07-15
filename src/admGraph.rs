@@ -54,7 +54,9 @@ impl<'a> AdmGraph<'a> {
                         break;
                     }
                 }
-                self.checks.insert(*u);
+                if !self.candidates.contains(u) {
+                    self.checks.insert(*u);
+                }
             }
         }
     }
@@ -86,7 +88,9 @@ impl<'a> AdmGraph<'a> {
                     }
                 }
             }
-            self.checks.insert(*u);
+            if !self.candidates.contains(u) {
+                self.checks.insert(*u);
+            }
         }
     }
 
@@ -134,7 +138,7 @@ impl<'a> AdmGraph<'a> {
             let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
             if v_adm_data.is_maximal_matching_size_p(p) {
                 let aug_path = self.construct_g_for_augmenting_path(&mut v_adm_data);
-                let new_path = aug_path.find_augmenting_path(p);
+                let new_path = aug_path.find_augmenting_path(p-v_adm_data.n1_in_l.len());
 
                 match new_path {
                     Some(path) => {
