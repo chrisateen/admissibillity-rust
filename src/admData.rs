@@ -74,7 +74,9 @@ impl AdmData {
 
 #[cfg(test)]
 mod test_adm_data {
+    use graphbench::graph::VertexMap;
     use crate::admData::AdmData;
+    use crate::augmentingPath::MatchingEdges;
 
     #[test]
     fn delete_m_should_reset_m() {
@@ -133,7 +135,7 @@ mod test_adm_data {
     }
 
     #[test]
-    fn move_n1_in_l_to_r_should_remove_vertex_in_l_and_add_to_r() {
+    fn move_v_in_l_to_r_should_remove_vertex_in_l_and_add_to_r() {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
 
@@ -178,4 +180,35 @@ mod test_adm_data {
 
         assert!(v.can_add_vertex_in_l_to_m(&8));
     }
+
+    #[test]
+    fn add_edges_to_m_should_add_edges_in_both_directions(){
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+
+        v.add_edges_to_m(6,7);
+
+        assert!(v.m_from_l.contains_key(&6));
+        assert!(v.m_from_r.contains_key(&7));
+    }
+
+    // #[test]
+    // fn update_edges_should_add_and_remove_edges_in_m(){
+    //     let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+    //     let mut v = AdmData::new(1, neighbours);
+    //     v.m_from_l.insert(6, 7);
+    //     v.m_from_r.insert(7,6);
+    //     v.m_from_l.insert(8, 9);
+    //     v.m_from_r.insert(9,8);
+    //
+    //     let mut matchingEdges = MatchingEdges{
+    //         e_add: VertexMap::default(),
+    //         e_remove: VertexMap::default(),
+    //     };
+    //
+    //     matchingEdges.e_add.insert(10,7);
+    //     matchingEdges.e_add.insert(6,9);
+    //     matchingEdges.e_remove.insert(6,7);
+    //     matchingEdges.e_remove.insert()
+    // }
 }
