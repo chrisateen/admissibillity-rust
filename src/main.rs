@@ -55,7 +55,6 @@ fn main() {
     let mut is_p;
 
     let graph = load_graph(network_path, network);
-
     loop {
         println!("p {}", p);
         is_p = compute_ordering(p, &graph);

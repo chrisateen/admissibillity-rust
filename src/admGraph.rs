@@ -278,12 +278,12 @@ mod test_adm_graph {
 
         adm_graph.update_l2_of_v(1);
 
-        assert_eq!(adm_graph
+        assert!(adm_graph
             .adm_data
             .get(&5)
             .unwrap()
             .m_from_l
-            .contains_key(&8), true);
+            .contains_key(&8));
     }
 
     #[test]
