@@ -20,6 +20,10 @@ impl AdmData {
         }
     }
 
+    pub fn get_vertices_in_r_and_m(&self) -> Vec<Vertex> {
+        self.m.values().cloned().collect()
+    }
+
     //When a vertex is added to candidates we no longer need M
     pub fn delete_m(&mut self) {
         self.m = VertexMap::default();
