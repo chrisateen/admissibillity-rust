@@ -1,3 +1,4 @@
+use std::mem;
 use crate::admData::AdmData;
 use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
@@ -80,7 +81,7 @@ impl<'a> AdmGraph<'a> {
         for u in union_left_neighbours {
             let mut u_adm_data = self.adm_data.remove(&u).unwrap();
             //check if v is in m of u and if so remove
-            match u_adm_data.m_from_l.remove(&v) {
+            match u_adm_data.remove_v_from_m(v) {
                 None => {}
                 //check to see if we can replace the edge x,v being removed
                 //by checking if v can be replaced by another vertex in L1 of x
@@ -147,8 +148,9 @@ impl<'a> AdmGraph<'a> {
     }
 
     fn do_checks(&mut self, p: usize) {
-        for v in &self.checks.clone() {
-            let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+        let checks = mem::take(&mut self.checks);
+        for v in checks {
+            let mut v_adm_data = self.adm_data.remove(&v).unwrap();
             if v_adm_data.is_maximal_matching_size_p(p) {
                 let aug_path = self.construct_g_for_augmenting_path(&mut v_adm_data);
                 let new_path = aug_path.find_augmenting_path();
@@ -158,20 +160,19 @@ impl<'a> AdmGraph<'a> {
                         v_adm_data.update_m(&path);
                     }
                     None => {
-                        self.candidates.insert(*v);
+                        self.candidates.insert(v);
                     }
                 }
             }
-            self.adm_data.insert(*v, v_adm_data);
-            self.checks.remove(v);
+            self.adm_data.insert(v, v_adm_data);
         }
     }
 
     pub fn remove_v_from_candidates(&mut self, p: usize) -> Option<Vertex> {
-        let v = self.candidates.clone().into_iter().next();
+        let v = self.candidates.iter().next();
 
         match v {
-            Some(v) => {
+            Some(&v) => {
                 self.candidates.remove(&v);
                 self.l.remove(&v);
                 self.r.insert(v);

@@ -32,6 +32,16 @@ impl AdmData {
         self.m_from_l.len() + self.n_in_l.len() < p + 1
     }
 
+    pub fn remove_v_from_m(&mut self, v: Vertex) -> Option<Vertex> {
+        match self.m_from_l.remove(&v) {
+            None => None,
+            Some(u) => {
+                self.m_from_r.remove(&u).expect(&format!("Vertex {u} should be in m"));
+                Some(u)
+            }
+        }
+    }
+
     pub fn move_v_in_l_to_r(&mut self, v: &Vertex) {
         self.n_in_l.remove(v);
         self.n_in_r.insert(*v);
