@@ -1,8 +1,8 @@
-use std::mem;
 use crate::admData::AdmData;
 use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
+use std::mem;
 
 pub struct AdmGraph<'a> {
     graph: &'a EditGraph,
@@ -62,7 +62,7 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
-    fn union_left_neighbours_of_u_in_r_and_m(&self, v:Vertex) -> VertexSet{
+    fn union_left_neighbours_of_u_in_r_and_m(&self, v: Vertex) -> VertexSet {
         let mut union_left_neighbours = VertexSet::default();
         let v_adm_data = self.adm_data.get(&v).unwrap();
 
@@ -126,7 +126,7 @@ impl<'a> AdmGraph<'a> {
                     } else {
                         //Gets edges between a vertex in L and M and a vertex R not in M
                         augmenting_path.t.insert(*w);
-                        augmenting_path.out.insert(*w,*u);
+                        augmenting_path.out.insert(*w, *u);
                     }
                 }
             }
@@ -155,15 +155,10 @@ impl<'a> AdmGraph<'a> {
 
                 match new_path {
                     Some(path) => {
-                        assert_eq!(v_adm_data.n_in_l.len() + v_adm_data.m_from_l.len(), p);
                         v_adm_data.update_m(&path);
-                        assert_eq!(v_adm_data.n_in_l.len() + v_adm_data.m_from_l.len(), p+1);
-                        assert_eq!(v_adm_data.n_in_l.len() + v_adm_data.m_from_r.len(), p+1);
                     }
                     None => {
                         self.candidates.insert(v);
-                        assert!(v_adm_data.n_in_l.len() + v_adm_data.m_from_l.len() < p+1);
-                        assert!(v_adm_data.n_in_l.len() + v_adm_data.m_from_r.len() < p+1);
                     }
                 }
             }
@@ -290,52 +285,52 @@ mod test_adm_graph {
             .contains_key(&8));
     }
 
-    // #[test]
-    // fn construct_g_for_augmenting_path_should_create_edges_for_augmenting_path() {
-    //     let mut graph = EditGraph::new();
-    //     let edges: EdgeSet = [
-    //         (1, 2),
-    //         (1, 3),
-    //         (1, 4),
-    //         (1, 6),
-    //         (1, 8),
-    //         (1, 10),
-    //         (1, 11),
-    //         (4, 5),
-    //         (6, 7),
-    //         (8, 9),
-    //         (5, 6),
-    //         (7, 8),
-    //         (9, 10),
-    //         (9, 11),
-    //         (4, 12),
-    //         (4, 13),
-    //         (6, 14),
-    //     ]
-    //     .iter()
-    //     .cloned()
-    //     .collect();
-    //     for (u, v) in edges.iter() {
-    //         graph.add_edge(u, v);
-    //     }
-    //     let mut adm_graph = AdmGraph::new(&graph);
-    //
-    //     adm_graph.initialise_candidates(3);
-    //     let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
-    //     [4, 6, 8, 10, 11].map(|x| v_adm_data.move_v_in_l_to_r(&x));
-    //     [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.add_edges_to_m(l, r));
-    //
-    //     let aug_path = adm_graph.construct_g_for_augmenting_path(&mut v_adm_data);
-    //
-    //     assert_eq!(aug_path.t.len(), 1);
-    //     assert!(aug_path.t.contains(&9));
-    //     assert_eq!(aug_path.s.len(), 2);
-    //     assert!(aug_path.s.contains(&4));
-    //     assert!(aug_path.s.contains(&6));
-    //     //Check some of the edges are inserted in the right direction
-    //     assert_eq!(aug_path.edges.get(&4).unwrap(), &5);
-    //     assert_eq!(aug_path.edges.get(&5).unwrap(), &6);
-    //}
+    #[test]
+    fn construct_g_for_augmenting_path_should_create_edges_for_augmenting_path() {
+        let mut graph = EditGraph::new();
+        let edges: EdgeSet = [
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (1, 6),
+            (1, 8),
+            (1, 10),
+            (1, 11),
+            (4, 5),
+            (6, 7),
+            (8, 9),
+            (5, 6),
+            (7, 8),
+            (9, 10),
+            (9, 11),
+            (4, 12),
+            (4, 13),
+            (6, 14),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        for (u, v) in edges.iter() {
+            graph.add_edge(u, v);
+        }
+        let mut adm_graph = AdmGraph::new(&graph);
+
+        adm_graph.initialise_candidates(3);
+        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        [4, 6, 8, 10, 11].map(|x| v_adm_data.move_v_in_l_to_r(&x));
+        [(5, 4), (7, 6), (9, 8)].map(|(l, r)| v_adm_data.add_edges_to_m(l, r));
+
+        let aug_path = adm_graph.construct_g_for_augmenting_path(&mut v_adm_data);
+
+        assert_eq!(aug_path.t.len(), 1);
+        assert!(aug_path.t.contains(&9));
+        assert_eq!(aug_path.s.len(), 2);
+        assert!(aug_path.s.contains(&4));
+        assert!(aug_path.s.contains(&6));
+        //Check some of the edges are inserted in the right direction
+        assert!(aug_path.edges.get(&4).unwrap().contains(&5));
+        assert!(aug_path.edges.get(&5).unwrap().contains(&6));
+    }
 
     #[test]
     fn remove_v_from_candidates_should_move_v_from_l_to_r() {

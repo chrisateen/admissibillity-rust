@@ -15,13 +15,11 @@ struct Args {
     network: String,
 
     /// start p value
-    //#[arg(short, long, default_value_t = 1)]
     p: usize,
 
     /// Path to network
     #[arg(default_value_t = String::from("../network-corpus/networks/"))]
     network_path: String,
-
 }
 
 fn load_graph(network_path: String, network: String) -> EditGraph {

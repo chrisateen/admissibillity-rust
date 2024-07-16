@@ -29,15 +29,13 @@ impl AdmData {
         self.deleted_m = true;
     }
 
-    pub fn is_maximal_matching_size_p(&self, p: usize) -> bool {
-        self.m_from_l.len() + self.n_in_l.len() < p + 1
-    }
-
     pub fn remove_v_from_m(&mut self, v: Vertex) -> Option<Vertex> {
         match self.m_from_l.remove(&v) {
             None => None,
             Some(u) => {
-                self.m_from_r.remove(&u).expect(&format!("Vertex {u} should be in M"));
+                self.m_from_r
+                    .remove(&u)
+                    .unwrap_or_else(|| panic!("Vertex {u} should be in M"));
                 Some(u)
             }
         }
@@ -46,12 +44,6 @@ impl AdmData {
     pub fn move_v_in_l_to_r(&mut self, v: &Vertex) {
         self.n_in_l.remove(v);
         self.n_in_r.insert(*v);
-    }
-
-    //Checks if a vertex v in L is not in M or not in L1
-    //If not that vertex can be added to M
-    pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
-        !(self.m_from_l.contains_key(v) || self.n_in_l.contains(v) || v.eq(&self.id))
     }
 
     pub fn add_edges_to_m(&mut self, v_in_l: Vertex, u_in_r: Vertex) {
@@ -70,13 +62,23 @@ impl AdmData {
             self.m_from_r.insert(*u, *v);
         }
     }
+
+    pub fn is_maximal_matching_size_p(&self, p: usize) -> bool {
+        self.m_from_l.len() + self.n_in_l.len() < p + 1
+    }
+
+    //Checks if a vertex v in L is not in M or not in L1
+    //If not that vertex can be added to M
+    pub fn can_add_vertex_in_l_to_m(&self, v: &Vertex) -> bool {
+        !(self.m_from_l.contains_key(v) || self.n_in_l.contains(v) || v.eq(&self.id))
+    }
 }
 
 #[cfg(test)]
 mod test_adm_data {
-    use graphbench::graph::VertexMap;
     use crate::admData::AdmData;
     use crate::augmentingPath::MatchingEdges;
+    use graphbench::graph::VertexMap;
 
     #[test]
     fn delete_m_should_reset_m() {
@@ -84,8 +86,8 @@ mod test_adm_data {
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
         v.m_from_l.insert(9, 10);
-        v.m_from_r.insert(7,6);
-        v.m_from_r.insert(10,9);
+        v.m_from_r.insert(7, 6);
+        v.m_from_r.insert(10, 9);
 
         v.delete_m();
 
@@ -95,27 +97,13 @@ mod test_adm_data {
     }
 
     #[test]
-    fn is_maximal_matching_size_p_should_check_if_len_l_and_m_is_p() {
+    fn remove_v_from_m_should_remove_v_as_an_l2_of_m() {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
         v.m_from_l.insert(9, 10);
-        v.m_from_r.insert(7,6);
-        v.m_from_r.insert(10,9);
-
-        assert!(!v.is_maximal_matching_size_p(5));
-        assert!(v.is_maximal_matching_size_p(6));
-        assert!(v.is_maximal_matching_size_p(7));
-    }
-
-    #[test]
-    fn remove_v_from_m_should_remove_v_as_an_l2_of_m(){
-        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
-        let mut v = AdmData::new(1, neighbours);
-        v.m_from_l.insert(6, 7);
-        v.m_from_l.insert(9, 10);
-        v.m_from_r.insert(7,6);
-        v.m_from_r.insert(10,9);
+        v.m_from_r.insert(7, 6);
+        v.m_from_r.insert(10, 9);
 
         assert!(v.remove_v_from_m(6).is_some());
         assert!(!v.m_from_l.contains_key(&6));
@@ -123,13 +111,13 @@ mod test_adm_data {
     }
 
     #[test]
-    fn remove_v_from_m_should_return_none_if_v_is_not_in_m(){
+    fn remove_v_from_m_should_return_none_if_v_is_not_in_m() {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
         v.m_from_l.insert(9, 10);
-        v.m_from_r.insert(7,6);
-        v.m_from_r.insert(10,9);
+        v.m_from_r.insert(7, 6);
+        v.m_from_r.insert(10, 9);
 
         assert!(v.remove_v_from_m(0).is_none());
     }
@@ -143,6 +131,55 @@ mod test_adm_data {
 
         assert_eq!(v.n_in_l.len(), 3);
         assert_eq!(v.n_in_r.len(), 1);
+    }
+
+    #[test]
+    fn add_edges_to_m_should_add_edges_in_both_directions() {
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+
+        v.add_edges_to_m(6, 7);
+
+        assert!(v.m_from_l.contains_key(&6));
+        assert!(v.m_from_r.contains_key(&7));
+    }
+
+    #[test]
+    fn update_edges_should_add_and_remove_edges_in_m() {
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+        v.m_from_l.insert(6, 7);
+        v.m_from_r.insert(7, 6);
+
+        let mut matching_edges = MatchingEdges {
+            e_add: VertexMap::default(),
+            e_remove: VertexMap::default(),
+        };
+
+        matching_edges.e_add.insert(10, 7);
+        matching_edges.e_add.insert(6, 9);
+        matching_edges.e_remove.insert(6, 7);
+
+        v.update_m(&matching_edges);
+
+        assert_eq!(v.m_from_l.len(), 2);
+        assert_eq!(v.m_from_r.len(), 2);
+        assert_eq!(*v.m_from_l.get(&10).unwrap(), 7);
+        assert_eq!(*v.m_from_l.get(&6).unwrap(), 9);
+    }
+
+    #[test]
+    fn is_maximal_matching_size_p_should_check_if_len_l_and_m_is_p() {
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+        v.m_from_l.insert(6, 7);
+        v.m_from_l.insert(9, 10);
+        v.m_from_r.insert(7, 6);
+        v.m_from_r.insert(10, 9);
+
+        assert!(!v.is_maximal_matching_size_p(5));
+        assert!(v.is_maximal_matching_size_p(6));
+        assert!(v.is_maximal_matching_size_p(7));
     }
 
     #[test]
@@ -166,7 +203,7 @@ mod test_adm_data {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
-        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(7, 6);
 
         assert!(!v.can_add_vertex_in_l_to_m(&6));
     }
@@ -176,39 +213,8 @@ mod test_adm_data {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
-        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(7, 6);
 
         assert!(v.can_add_vertex_in_l_to_m(&8));
     }
-
-    #[test]
-    fn add_edges_to_m_should_add_edges_in_both_directions(){
-        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
-        let mut v = AdmData::new(1, neighbours);
-
-        v.add_edges_to_m(6,7);
-
-        assert!(v.m_from_l.contains_key(&6));
-        assert!(v.m_from_r.contains_key(&7));
-    }
-
-    // #[test]
-    // fn update_edges_should_add_and_remove_edges_in_m(){
-    //     let neighbours = [2, 3, 4, 5].iter().cloned().collect();
-    //     let mut v = AdmData::new(1, neighbours);
-    //     v.m_from_l.insert(6, 7);
-    //     v.m_from_r.insert(7,6);
-    //     v.m_from_l.insert(8, 9);
-    //     v.m_from_r.insert(9,8);
-    //
-    //     let mut matchingEdges = MatchingEdges{
-    //         e_add: VertexMap::default(),
-    //         e_remove: VertexMap::default(),
-    //     };
-    //
-    //     matchingEdges.e_add.insert(10,7);
-    //     matchingEdges.e_add.insert(6,9);
-    //     matchingEdges.e_remove.insert(6,7);
-    //     matchingEdges.e_remove.insert()
-    // }
 }
