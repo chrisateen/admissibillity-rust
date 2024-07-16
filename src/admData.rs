@@ -25,6 +25,7 @@ impl AdmData {
     //When a vertex is added to candidates we no longer need M
     pub fn delete_m(&mut self) {
         self.m_from_l = VertexMap::default();
+        self.m_from_r = VertexMap::default();
         self.deleted_m = true;
     }
 
@@ -36,7 +37,7 @@ impl AdmData {
         match self.m_from_l.remove(&v) {
             None => None,
             Some(u) => {
-                self.m_from_r.remove(&u).expect(&format!("Vertex {u} should be in m"));
+                self.m_from_r.remove(&u).expect(&format!("Vertex {u} should be in M"));
                 Some(u)
             }
         }
@@ -81,11 +82,14 @@ mod test_adm_data {
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
         v.m_from_l.insert(9, 10);
+        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(10,9);
 
         v.delete_m();
 
         assert!(v.deleted_m);
         assert_eq!(v.m_from_l.len(), 0);
+        assert_eq!(v.m_from_r.len(), 0);
     }
 
     #[test]
@@ -94,10 +98,38 @@ mod test_adm_data {
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
         v.m_from_l.insert(9, 10);
+        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(10,9);
 
         assert!(!v.is_maximal_matching_size_p(5));
         assert!(v.is_maximal_matching_size_p(6));
         assert!(v.is_maximal_matching_size_p(7));
+    }
+
+    #[test]
+    fn remove_v_from_m_should_remove_v_as_an_l2_of_m(){
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+        v.m_from_l.insert(6, 7);
+        v.m_from_l.insert(9, 10);
+        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(10,9);
+
+        assert!(v.remove_v_from_m(6).is_some());
+        assert!(!v.m_from_l.contains_key(&6));
+        assert!(!v.m_from_r.contains_key(&7));
+    }
+
+    #[test]
+    fn remove_v_from_m_should_return_none_if_v_is_not_in_m(){
+        let neighbours = [2, 3, 4, 5].iter().cloned().collect();
+        let mut v = AdmData::new(1, neighbours);
+        v.m_from_l.insert(6, 7);
+        v.m_from_l.insert(9, 10);
+        v.m_from_r.insert(7,6);
+        v.m_from_r.insert(10,9);
+
+        assert!(v.remove_v_from_m(0).is_none());
     }
 
     #[test]
@@ -132,6 +164,7 @@ mod test_adm_data {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
+        v.m_from_r.insert(7,6);
 
         assert!(!v.can_add_vertex_in_l_to_m(&6));
     }
@@ -141,6 +174,7 @@ mod test_adm_data {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
+        v.m_from_r.insert(7,6);
 
         assert!(v.can_add_vertex_in_l_to_m(&8));
     }
