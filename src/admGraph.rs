@@ -41,16 +41,17 @@ impl<'a> AdmGraph<'a> {
 
     //When a vertex v is moving into R remove v as an L1 from all of its neighbours
     //check if v can be added to M
-    fn update_n1_of_v(&mut self, v: &AdmData) {
-        for u in self.graph.neighbours(&v.id) {
+    fn update_n1_of_v(&mut self, v: Vertex) {
+        let n1_in_l = self.adm_data.get(&v).unwrap().n1_in_l.clone();
+        for u in self.graph.neighbours(&v) {
             let u_adm_data = self.adm_data.get_mut(u).unwrap();
-            u_adm_data.n1_in_l.remove(&v.id);
-            u_adm_data.n1_in_r.insert(v.id);
+            u_adm_data.n1_in_l.remove(&v);
+            u_adm_data.n1_in_r.insert(v);
 
             if !u_adm_data.deleted_m {
-                for w in &v.n1_in_l {
+                for w in &n1_in_l {
                     if u_adm_data.can_add_vertex_in_l_to_m(w) {
-                        u_adm_data.m.insert(*w, v.id);
+                        u_adm_data.m.insert(*w, v);
                         break;
                     }
                 }
@@ -63,44 +64,45 @@ impl<'a> AdmGraph<'a> {
 
     //When a vertex v is moving into R for each vertex that is within 2 left neighbours of v
     // replace/remove v from M
-    fn update_l2_of_v(&mut self, v: &AdmData) {
-        let vertices_in_r_and_m = v.get_vertices_in_r_and_m();
+    fn update_l2_of_v(&mut self, v: Vertex) {
 
-        for x in vertices_in_r_and_m {
-            let x_adm_data = self.adm_data.get_mut(&x).unwrap();
 
-            //As v is moving to r, need to move v as an R1 neighbour of x
-            x_adm_data.move_n1_in_l_to_r(&v.id);
-            //let x_n1_in_l = x_adm_data.n1_in_l.clone();
+        let mut union_left_neighbours = {
+            let v_adm_data = self.adm_data.get(&v).unwrap();
+            let vertices_in_r_and_m = v_adm_data.get_vertices_in_r_and_m();
 
-            let mut vertices = x_adm_data.n1_in_l.clone();
-            vertices.insert(x);
+            let mut union_left_neighbours = VertexSet::default();
 
-            for u in vertices {
-                let u_adm_data = self.adm_data.get_mut(&u).unwrap();
+            for x in vertices_in_r_and_m {
+                let v_adm_data = self.adm_data.get(&x).unwrap();
+                union_left_neighbours.extend(v_adm_data.n1_in_l.iter().cloned());
+            }
+            union_left_neighbours
+        };
 
-                //check if v is in m of u and if so remove
-                match u_adm_data.m.remove(&v.id) {
-                    None => continue,
-                    //check to see if we can replace the edge x,v being removed
-                    //by checking if v can be replaced by another vertex in L1 of x
-                    Some(t) => {
+        for u in union_left_neighbours {
 
-                        //TODO FIX COMPILER ERROR
-                        let t_n1_in_l = self.adm_data.get(&t).unwrap().n1_in_l.clone();
+            //TODO Sometimes this is not being added back to adm data
+            let mut u_adm_data = self.adm_data.remove(&u).unwrap();
 
-                        for y in &t_n1_in_l { //for y in &x_n1_in_l
-                            if u_adm_data.can_add_vertex_in_l_to_m(y) {
-                                u_adm_data.m.insert(*y, x);
-                                break;
-                            }
+            //check if v is in m of u and if so remove
+            match u_adm_data.m.remove(&v) {
+                None => {},
+                //check to see if we can replace the edge x,v being removed
+                //by checking if v can be replaced by another vertex in L1 of x
+                Some(x) => {
+                    let x_n1_in_l : VertexSet = self.adm_data.get(&x).unwrap().n1_in_l.iter().cloned().collect();
+                    for y in x_n1_in_l {
+                        if u_adm_data.can_add_vertex_in_l_to_m(&y) {
+                            u_adm_data.m.insert(y, x);
+                            break;
                         }
                     }
                 }
-
-                if !self.candidates.contains(&u) {
-                    self.checks.insert(u);
-                }
+            }
+            self.adm_data.insert(u, u_adm_data);
+            if !self.candidates.contains(&u) {
+                self.checks.insert(u);
             }
         }
     }
@@ -175,14 +177,14 @@ impl<'a> AdmGraph<'a> {
                 self.r.insert(v);
 
                 //removing and inserting back in adm data to get around rust ownership rules
-                let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
+                //let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
 
-                self.update_n1_of_v(&v_adm_data);
-                self.update_l2_of_v(&v_adm_data);
+                self.update_n1_of_v(v);
+                self.update_l2_of_v(v);
 
-                v_adm_data.delete_m();
+                //v_adm_data.delete_m();
 
-                self.adm_data.insert(v, v_adm_data);
+                //self.adm_data.insert(v, v_adm_data);
 
                 self.do_checks(p);
 
@@ -190,32 +192,6 @@ impl<'a> AdmGraph<'a> {
             }
             None => None,
         }
-    }
-
-    //TODO remove- added for testing purposes
-    pub fn remove_v(&mut self, v: Vertex, p: usize) -> Vertex {
-        let removed = self.candidates.remove(&v);
-
-        //removing and inserting back in adm data to get around rust ownership rules
-        let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
-
-        if !removed {
-            panic!("Did not remove vertex");
-        }
-
-        self.l.remove(&v);
-        self.r.insert(v);
-
-        self.update_n1_of_v(&v_adm_data);
-        self.update_l2_of_v(&v_adm_data);
-
-        v_adm_data.delete_m();
-
-        self.adm_data.insert(v, v_adm_data);
-
-        self.do_checks(p);
-
-        v
     }
 }
 
