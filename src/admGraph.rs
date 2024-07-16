@@ -176,15 +176,8 @@ impl<'a> AdmGraph<'a> {
                 self.l.remove(&v);
                 self.r.insert(v);
 
-                //removing and inserting back in adm data to get around rust ownership rules
-                //let mut v_adm_data = self.adm_data.remove(&v.clone()).unwrap();
-
                 self.update_n1_of_v(v);
                 self.update_l2_of_v(v);
-
-                //v_adm_data.delete_m();
-
-                //self.adm_data.insert(v, v_adm_data);
 
                 self.do_checks(p);
 
@@ -233,8 +226,7 @@ mod test_adm_graph {
         }
         let mut adm_graph = AdmGraph::new(&graph);
 
-        let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
-        adm_graph.update_n1_of_v(&v_adm_data);
+        adm_graph.update_n1_of_v(1);
         let u_adm_data = adm_graph.adm_data.get(&2).unwrap();
 
         assert_eq!(u_adm_data.m.len(), 1);
@@ -252,12 +244,11 @@ mod test_adm_graph {
         }
         let mut adm_graph = AdmGraph::new(&graph);
 
-        let v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
         let mut u_adm_data = adm_graph.adm_data.remove(&2).unwrap();
         u_adm_data.deleted_m = true;
         adm_graph.adm_data.insert(2, u_adm_data);
 
-        adm_graph.update_n1_of_v(&v_adm_data);
+        adm_graph.update_n1_of_v(1);
 
         assert_eq!(adm_graph.adm_data.remove(&2).unwrap().m.len(), 0);
     }
@@ -275,7 +266,7 @@ mod test_adm_graph {
         let mut adm_graph = AdmGraph::new(&graph);
 
         adm_graph.initialise_candidates(3);
-        let mut v_adm_data = adm_graph.adm_data.remove(&1).unwrap();
+        let mut v_adm_data = adm_graph.adm_data.get_mut(&1).unwrap();
         v_adm_data.move_n1_in_l_to_r(&4);
         v_adm_data.m.insert(5, 4);
         let mut u_adm_data = adm_graph.adm_data.remove(&5).unwrap();
@@ -283,7 +274,7 @@ mod test_adm_graph {
         u_adm_data.m.insert(1, 4);
         adm_graph.adm_data.insert(5, u_adm_data);
 
-        adm_graph.update_l2_of_v(&v_adm_data);
+        adm_graph.update_l2_of_v(1);
 
         assert!(adm_graph.adm_data.get(&5).unwrap().m.contains_key(&8));
     }
