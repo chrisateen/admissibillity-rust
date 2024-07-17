@@ -3,10 +3,11 @@ mod augmentingPath;
 
 mod admData;
 
+use std::cmp::{max, Ordering};
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
-use graphbench::graph::{Graph, VertexSet};
+use graphbench::graph::{Graph, VertexSet, Vertex};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -22,26 +23,41 @@ struct Args {
     network_path: String,
 }
 
+struct AdmResult {
+    ordering: Vec<Vertex>,
+    is_p: bool
+}
+
 fn load_graph(network_path: String, network: String) -> EditGraph {
     let file_dir = format!("{}/{}.txt.gz", network_path, network);
     EditGraph::from_gzipped(&file_dir)
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
 
-fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
-    let num_vertices = graph.num_vertices();
+fn compute_ordering(p: usize, graph: &EditGraph, previous_ordering: &Vec<Vertex>) -> AdmResult {
     let mut adm_graph = AdmGraph::new(graph);
+    let mut result  = AdmResult{
+        is_p: false,
+        ordering: Vec::new()
+    };
 
     adm_graph.initialise_candidates(p);
 
-    let mut next_vertex = adm_graph.remove_v_from_candidates(p);
-
-    while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
-        next_vertex.unwrap();
-        next_vertex = adm_graph.remove_v_from_candidates(p);
+    if !previous_ordering.is_empty(){
+        adm_graph.initialise_from_previous_iteration(p,previous_ordering);
+        result.ordering.extend(previous_ordering);
     }
 
-    adm_graph.is_all_vertices_in_r_or_candidates()
+    let mut next_vertex = adm_graph.remove_v_from_candidates(p, None);
+
+    while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
+        result.ordering.push(next_vertex.unwrap());
+        next_vertex = adm_graph.remove_v_from_candidates(p, None);
+    }
+
+    result.is_p = adm_graph.is_all_vertices_in_r_or_candidates();
+
+    result
 }
 
 fn main() {
@@ -53,10 +69,14 @@ fn main() {
 
     let mut is_p;
 
+    let mut previous_ordering = Vec::new();
+
     let graph = load_graph(network_path, network);
     loop {
         println!("p {}", p);
-        is_p = compute_ordering(p, &graph);
+        let result = compute_ordering(p, &graph, &previous_ordering);
+        is_p = result.is_p;
+        previous_ordering = result.ordering;
         if is_p {
             break;
         }
@@ -93,7 +113,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph));
+        assert!(compute_ordering(4, &graph, &Vec::new()).is_p);
     }
 
     #[test]
@@ -107,7 +127,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph));
+        assert!(compute_ordering(4, &graph, &Vec::new()).is_p);
     }
 
     #[test]
@@ -121,7 +141,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(!compute_ordering(2, &graph));
+        assert!(!compute_ordering(2, &graph, &Vec::new()).is_p);
     }
 
     #[test]
@@ -152,8 +172,8 @@ mod test_main {
 
         let mut p = 1;
         loop {
-            let is_p = compute_ordering(p, &graph);
-            if is_p {
+            let result = compute_ordering(p, &graph, &Vec::new());
+            if result.is_p {
                 break;
             }
             p += 1;
