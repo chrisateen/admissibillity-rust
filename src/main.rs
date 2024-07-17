@@ -16,7 +16,7 @@ struct Args {
     network: String,
 
     /// start p value
-    p: usize,
+    p: i32,
 
     /// Path to network
     #[arg(default_value_t = String::from("../network-corpus/networks/"))]
@@ -33,6 +33,21 @@ fn load_graph(network_path: String, network: String) -> EditGraph {
     EditGraph::from_gzipped(&file_dir)
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
+
+fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32{
+    if (p - highest_not_p <=1 && is_p) || (p - lowest_p).abs() ==1{
+        return -1;
+    }
+    //Continue to double the p value we check if we haven't found a value where G is p,2 admissible
+    if lowest_p == -1 && !is_p{
+        return (p * 2) as i32;
+    }
+    //Once we found a p value keep halving the search between the highest value where p was true
+    //and the lowest value
+    let x = max(p, lowest_p); //Ensure
+    return (x + highest_not_p)/2;
+}
+
 
 fn compute_ordering(p: usize, graph: &EditGraph, previous_ordering: &Vec<Vertex>) -> AdmResult {
     let mut adm_graph = AdmGraph::new(graph);
@@ -68,19 +83,26 @@ fn main() {
     let mut p = args.p;
 
     let mut is_p;
+    let mut lowest_p :i32 = -1;
+    let mut highest_not_p:i32 = -1;
 
     let mut previous_ordering = Vec::new();
 
     let graph = load_graph(network_path, network);
     loop {
         println!("p {}", p);
-        let result = compute_ordering(p, &graph, &previous_ordering);
+        let result = compute_ordering(p as usize, &graph, &Vec::new());
         is_p = result.is_p;
         previous_ordering = result.ordering;
-        if is_p {
+
+        if !is_p { highest_not_p = p;}
+        if is_p & (lowest_p ==-1 || p < lowest_p){ lowest_p = p;}
+        let next_p = next_p_value(p, is_p, lowest_p, highest_not_p);
+        if next_p == -1 {
+            if !is_p { p = lowest_p;}
             break;
         }
-        p += 1;
+        p = next_p;
     }
 
     println!("p is {}", p);
