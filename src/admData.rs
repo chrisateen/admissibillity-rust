@@ -55,7 +55,7 @@ impl AdmData {
     pub fn update_m(&mut self, edges: &MatchingEdges) {
         for (v, u) in &edges.e_remove {
             self.m_from_l.remove(v);
-            self.n_in_r.remove(u);
+            self.m_from_r.remove(u);
         }
         for (v, u) in &edges.e_add {
             self.m_from_l.insert(*v, *u);
