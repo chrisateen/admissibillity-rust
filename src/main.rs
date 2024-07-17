@@ -31,18 +31,17 @@ fn load_graph(network_path: String, network: String) -> EditGraph {
 fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
     let num_vertices = graph.num_vertices();
     let mut adm_graph = AdmGraph::new(graph);
-    let mut ordering = VertexSet::default();
 
     adm_graph.initialise_candidates(p);
 
     let mut next_vertex = adm_graph.remove_v_from_candidates(p);
 
-    while next_vertex.is_some() {
-        ordering.insert(next_vertex.unwrap());
+    while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
+        next_vertex.unwrap();
         next_vertex = adm_graph.remove_v_from_candidates(p);
     }
 
-    ordering.len() == num_vertices
+    adm_graph.is_all_vertices_in_r_or_candidates()
 }
 
 fn main() {

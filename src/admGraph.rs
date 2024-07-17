@@ -40,6 +40,10 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
+    pub fn is_all_vertices_in_r_or_candidates (&self) -> bool{
+        return self.r.len() + self.candidates.len() == self.graph.num_vertices();
+    }
+
     //When a vertex v is moving into R need to move v from L to R for all of v's neighbours u in L
     //check if v can be added to M of u
     fn update_n1_of_v(&mut self, v: Vertex) {

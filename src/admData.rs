@@ -145,7 +145,7 @@ mod test_adm_data {
     }
 
     #[test]
-    fn update_edges_should_add_and_remove_edges_in_m() {
+    fn update_m_should_add_and_remove_edges_in_m() {
         let neighbours = [2, 3, 4, 5].iter().cloned().collect();
         let mut v = AdmData::new(1, neighbours);
         v.m_from_l.insert(6, 7);
@@ -166,6 +166,8 @@ mod test_adm_data {
         assert_eq!(v.m_from_r.len(), 2);
         assert_eq!(*v.m_from_l.get(&10).unwrap(), 7);
         assert_eq!(*v.m_from_l.get(&6).unwrap(), 9);
+        assert_eq!(*v.m_from_r.get(&7).unwrap(), 10);
+        assert_eq!(*v.m_from_r.get(&9).unwrap(), 6);
     }
 
     #[test]
