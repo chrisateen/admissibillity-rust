@@ -30,6 +30,7 @@ fn load_graph(network_path: String, network: String) -> EditGraph {
 }
 
 fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
+    //Stop where the lowest p is p or the highest p + 1 is p
     if (p - highest_not_p <= 1 && is_p) || (p - lowest_p).abs() == 1 {
         return -1;
     }
@@ -37,9 +38,8 @@ fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
     if lowest_p == -1 && !is_p {
         return (p * 2) as i32;
     }
-    //Once we found a p value keep halving the search between the highest value where p was true
-    //and the lowest value
-    let x = max(p, lowest_p); //Ensure
+    //Once we found a p value keep halving the search between the lowest p and the highest not p
+    let x = max(p, lowest_p);
     return (x + highest_not_p) / 2;
 }
 
