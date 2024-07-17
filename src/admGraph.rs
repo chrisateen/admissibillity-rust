@@ -31,7 +31,6 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
-    //TODO enable initialisation of candidates from previous iterations
     pub fn initialise_candidates(&mut self, p: usize) {
         for (u, adm_data) in &self.adm_data {
             if adm_data.n_in_l.len() <= p {
@@ -40,13 +39,7 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
-    pub fn initialise_from_previous_iteration(&mut self, p:usize, previous_ordering: &Vec<Vertex>){
-        for v in previous_ordering{
-            self.remove_v_from_candidates(p,Some(v));
-        }
-    }
-
-    pub fn is_all_vertices_in_r_or_candidates (&self) -> bool{
+    pub fn is_all_vertices_in_r_or_candidates(&self) -> bool {
         return self.r.len() + self.candidates.len() == self.graph.num_vertices();
     }
 
@@ -176,8 +169,8 @@ impl<'a> AdmGraph<'a> {
         }
     }
 
-    pub fn remove_v_from_candidates(&mut self, p: usize, u: Option<&Vertex>) -> Option<Vertex> {
-        let v = if u.is_some() { u } else {self.candidates.iter().next()};
+    pub fn remove_v_from_candidates(&mut self, p: usize) -> Option<Vertex> {
+        let v = self.candidates.iter().next();
 
         match v {
             Some(&v) => {
@@ -356,7 +349,7 @@ mod test_adm_graph {
 
         adm_graph.initialise_candidates(3);
 
-        adm_graph.remove_v_from_candidates(3, None);
+        adm_graph.remove_v_from_candidates(3);
 
         assert_eq!(adm_graph.r.len(), 1);
         assert_eq!(adm_graph.l.len(), 5);

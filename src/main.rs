@@ -3,11 +3,11 @@ mod augmentingPath;
 
 mod admData;
 
-use std::cmp::{max, Ordering};
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
-use graphbench::graph::{Graph, VertexSet, Vertex};
+use graphbench::graph::{Graph, Vertex, VertexSet};
+use std::cmp::{max, Ordering};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -23,56 +23,37 @@ struct Args {
     network_path: String,
 }
 
-struct AdmResult {
-    ordering: Vec<Vertex>,
-    is_p: bool
-}
-
 fn load_graph(network_path: String, network: String) -> EditGraph {
     let file_dir = format!("{}/{}.txt.gz", network_path, network);
     EditGraph::from_gzipped(&file_dir)
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
 
-fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32{
-    if (p - highest_not_p <=1 && is_p) || (p - lowest_p).abs() ==1{
+fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
+    if (p - highest_not_p <= 1 && is_p) || (p - lowest_p).abs() == 1 {
         return -1;
     }
     //Continue to double the p value we check if we haven't found a value where G is p,2 admissible
-    if lowest_p == -1 && !is_p{
+    if lowest_p == -1 && !is_p {
         return (p * 2) as i32;
     }
     //Once we found a p value keep halving the search between the highest value where p was true
     //and the lowest value
     let x = max(p, lowest_p); //Ensure
-    return (x + highest_not_p)/2;
+    return (x + highest_not_p) / 2;
 }
 
-
-fn compute_ordering(p: usize, graph: &EditGraph, previous_ordering: &Vec<Vertex>) -> AdmResult {
+fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
     let mut adm_graph = AdmGraph::new(graph);
-    let mut result  = AdmResult{
-        is_p: false,
-        ordering: Vec::new()
-    };
 
     adm_graph.initialise_candidates(p);
 
-    if !previous_ordering.is_empty(){
-        adm_graph.initialise_from_previous_iteration(p,previous_ordering);
-        result.ordering.extend(previous_ordering);
-    }
-
-    let mut next_vertex = adm_graph.remove_v_from_candidates(p, None);
-
+    let mut next_vertex = adm_graph.remove_v_from_candidates(p);
     while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
-        result.ordering.push(next_vertex.unwrap());
-        next_vertex = adm_graph.remove_v_from_candidates(p, None);
+        next_vertex.unwrap();
+        next_vertex = adm_graph.remove_v_from_candidates(p);
     }
-
-    result.is_p = adm_graph.is_all_vertices_in_r_or_candidates();
-
-    result
+    adm_graph.is_all_vertices_in_r_or_candidates()
 }
 
 fn main() {
@@ -83,23 +64,25 @@ fn main() {
     let mut p = args.p;
 
     let mut is_p;
-    let mut lowest_p :i32 = -1;
-    let mut highest_not_p:i32 = -1;
-
-    let mut previous_ordering = Vec::new();
+    let mut lowest_p: i32 = -1;
+    let mut highest_not_p: i32 = -1;
 
     let graph = load_graph(network_path, network);
     loop {
         println!("p {}", p);
-        let result = compute_ordering(p as usize, &graph, &Vec::new());
-        is_p = result.is_p;
-        previous_ordering = result.ordering;
+        is_p = compute_ordering(p as usize, &graph);
 
-        if !is_p { highest_not_p = p;}
-        if is_p & (lowest_p ==-1 || p < lowest_p){ lowest_p = p;}
+        if !is_p {
+            highest_not_p = p;
+        }
+        if is_p & (lowest_p == -1 || p < lowest_p) {
+            lowest_p = p;
+        }
         let next_p = next_p_value(p, is_p, lowest_p, highest_not_p);
         if next_p == -1 {
-            if !is_p { p = lowest_p;}
+            if !is_p {
+                p = lowest_p;
+            }
             break;
         }
         p = next_p;
@@ -135,7 +118,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph, &Vec::new()).is_p);
+        assert!(compute_ordering(4, &graph));
     }
 
     #[test]
@@ -149,7 +132,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph, &Vec::new()).is_p);
+        assert!(compute_ordering(4, &graph));
     }
 
     #[test]
@@ -163,7 +146,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(!compute_ordering(2, &graph, &Vec::new()).is_p);
+        assert!(!compute_ordering(2, &graph));
     }
 
     #[test]
@@ -194,8 +177,8 @@ mod test_main {
 
         let mut p = 1;
         loop {
-            let result = compute_ordering(p, &graph, &Vec::new());
-            if result.is_p {
+            let is_p = compute_ordering(p, &graph);
+            if is_p {
                 break;
             }
             p += 1;
