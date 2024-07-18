@@ -68,7 +68,6 @@ fn main() {
 
     let graph = load_graph(network_path, network);
     loop {
-        println!("p {}", p);
         is_p = compute_ordering(p as usize, &graph);
 
         if !is_p {
