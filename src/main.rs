@@ -19,7 +19,6 @@ struct Args {
     p: i32,
 
     /// Path to network
-    #[arg(default_value_t = String::from("../network-corpus/networks/"))]
     network_path: String,
 }
 
