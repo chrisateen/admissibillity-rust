@@ -16,5 +16,5 @@ cargo run --release <NAME_OF_NETWORK> <P_VALUE_TO_START_THE_SEARCH> <DIR_TO_THE_
 For example
 
 '''
-cargo run --release windsurfers 10  ../network-corpus/networks
+cargo run --release windsurfers 11 ../network-corpus/networks
 '''
