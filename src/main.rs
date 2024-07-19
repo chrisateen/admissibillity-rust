@@ -6,8 +6,7 @@ mod admData;
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
-use graphbench::graph::{Graph, Vertex, VertexSet};
-use std::cmp::{max, Ordering};
+use std::cmp::{max};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
