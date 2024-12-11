@@ -1,3 +1,4 @@
+#![allow(warnings)]
 mod admGraph;
 mod augmentingPath;
 
@@ -7,6 +8,10 @@ use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
 use std::cmp::{max};
+use peak_alloc::PeakAlloc;
+
+#[global_allocator]
+static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -86,6 +91,9 @@ fn main() {
     }
 
     println!("p is {}", p);
+
+    let peak_mem = PEAK_ALLOC.peak_usage_as_kb();
+    println!("Max memory used in kb is {}", peak_mem);
 }
 
 #[cfg(test)]
