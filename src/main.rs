@@ -71,6 +71,10 @@ fn main() {
     let mut highest_not_p: i32 = -1;
 
     let graph = load_graph(network_path, network);
+
+    let mut peak_mem = PEAK_ALLOC.peak_usage_as_kb();
+    println!("Max memory used after graph loading in kb is {}", peak_mem);
+
     loop {
         is_p = compute_ordering(p as usize, &graph);
 
@@ -92,8 +96,8 @@ fn main() {
 
     println!("p is {}", p);
 
-    let peak_mem = PEAK_ALLOC.peak_usage_as_kb();
-    println!("Max memory used in kb is {}", peak_mem);
+    peak_mem = PEAK_ALLOC.peak_usage_as_kb();
+    println!("Max memory used in total kb is {}", peak_mem);
 }
 
 #[cfg(test)]
