@@ -3,6 +3,11 @@ use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
 use std::mem;
+use std::env;
+use std::fs::{self, File};
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use std::io::{BufRead, BufWriter, Write};
 
 pub struct AdmGraph<'a> {
     graph: &'a EditGraph,
@@ -41,6 +46,26 @@ impl<'a> AdmGraph<'a> {
 
     pub fn is_all_vertices_in_r_or_candidates(&self) -> bool {
         return self.r.len() + self.candidates.len() == self.graph.num_vertices();
+    }
+
+    pub fn save_ordering(&self, network: &String) {
+        let current_dir = env::current_dir().unwrap();
+        let new_folder =  current_dir.join("results");
+        fs::create_dir_all(&new_folder).unwrap();
+        let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
+
+        let file = File::create(file_path).unwrap();
+        let mut gz = GzEncoder::new(file, Compression::default());
+
+        for v in &self.r {
+            writeln!(gz, "{}", v).unwrap();
+        }
+
+        for v in &self.candidates {
+            writeln!(gz, "{}", v).unwrap();
+        }
+
+        gz.finish().unwrap();
     }
 
     //When a vertex v is moving into R need to move v from L to R for all of v's neighbours u in L

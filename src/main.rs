@@ -7,8 +7,8 @@ mod admData;
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
-use std::cmp::{max};
 use peak_alloc::PeakAlloc;
+use std::cmp::max;
 
 #[global_allocator]
 static PEAK_ALLOC: PeakAlloc = PeakAlloc;
@@ -26,7 +26,7 @@ struct Args {
     network_path: String,
 }
 
-fn load_graph(network_path: String, network: String) -> EditGraph {
+fn load_graph(network_path: String, network: &String) -> EditGraph {
     let file_dir = format!("{}/{}.txt.gz", network_path, network);
     EditGraph::from_gzipped(&file_dir)
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
@@ -46,7 +46,7 @@ fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
     return (x + highest_not_p) / 2;
 }
 
-fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
+fn compute_ordering(p: usize, graph: &EditGraph, network: Option<&String>) -> bool {
     let mut adm_graph = AdmGraph::new(graph);
 
     adm_graph.initialise_candidates(p);
@@ -56,7 +56,16 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> bool {
         next_vertex.unwrap();
         next_vertex = adm_graph.remove_v_from_candidates(p);
     }
-    adm_graph.is_all_vertices_in_r_or_candidates()
+    let is_p = adm_graph.is_all_vertices_in_r_or_candidates();
+
+    if is_p {
+        match network {
+            Some(n) => adm_graph.save_ordering(n),
+            _ => {}
+        }
+    }
+
+    return is_p;
 }
 
 fn main() {
@@ -70,13 +79,13 @@ fn main() {
     let mut lowest_p: i32 = -1;
     let mut highest_not_p: i32 = -1;
 
-    let graph = load_graph(network_path, network);
+    let graph = load_graph(network_path, &network);
 
     let mut peak_mem = PEAK_ALLOC.peak_usage_as_kb();
     println!("Max memory used after graph loading in kb is {}", peak_mem);
 
     loop {
-        is_p = compute_ordering(p as usize, &graph);
+        is_p = compute_ordering(p as usize, &graph, Some(&network));
 
         if !is_p {
             highest_not_p = p;
@@ -127,7 +136,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph));
+        assert!(compute_ordering(4, &graph, None));
     }
 
     #[test]
@@ -141,7 +150,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph));
+        assert!(compute_ordering(4, &graph, None));
     }
 
     #[test]
@@ -155,7 +164,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(!compute_ordering(2, &graph));
+        assert!(!compute_ordering(2, &graph, None));
     }
 
     #[test]
@@ -186,7 +195,7 @@ mod test_main {
 
         let mut p = 1;
         loop {
-            let is_p = compute_ordering(p, &graph);
+            let is_p = compute_ordering(p, &graph, None);
             if is_p {
                 break;
             }
