@@ -43,26 +43,6 @@ impl<'a> AdmGraph<'a> {
         return self.r_count + self.candidates.len() == self.graph.num_vertices();
     }
 
-    // pub fn save_ordering(&self, network: &String) {
-    //     let current_dir = env::current_dir().unwrap();
-    //     let new_folder =  current_dir.join("results");
-    //     fs::create_dir_all(&new_folder).unwrap();
-    //     let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
-
-    //     let file = File::create(file_path).unwrap();
-    //     let mut gz = GzEncoder::new(file, Compression::default());
-
-    //     for v in &self.r {
-    //         writeln!(gz, "{}", v).unwrap();
-    //     }
-
-    //     for v in &self.candidates {
-    //         writeln!(gz, "{}", v).unwrap();
-    //     }
-
-    //     gz.finish().unwrap();
-    // }
-
     //When a vertex v is moving into R need to move v from L to R for all of v's neighbours u in L
     //check if v can be added to M of u
     fn update_n1_of_v(&mut self, v: Vertex) {

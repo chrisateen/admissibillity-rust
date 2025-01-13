@@ -15,7 +15,6 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use std::io::{BufRead, BufWriter, Write};
 
-
 #[global_allocator]
 static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
@@ -38,6 +37,22 @@ fn load_graph(network_path: String, network: &String) -> EditGraph {
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
 
+fn save_ordering_to_file(network: String, order: Vec<Vertex>) {
+    let current_dir = std::env::current_dir().unwrap();
+    let new_folder = current_dir.join("results");
+    std::fs::create_dir_all(&new_folder).unwrap();
+    let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
+
+    let file = std::fs::File::create(file_path).unwrap();
+    let mut gz = GzEncoder::new(file, Compression::default());
+
+    for v in order {
+        writeln!(gz, "{}", v).unwrap();
+    }
+
+    gz.finish().unwrap();
+}
+
 fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
     //Stop where the lowest p is p or the highest p + 1 is p
     if (p - highest_not_p <= 1 && is_p) || (p - lowest_p).abs() == 1 {
@@ -57,8 +72,6 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
 
     adm_graph.initialise_candidates(p);
 
-    // println!("Vertices = {:?}", graph.vertices().collect::<Vec<&Vertex>>());
-
     let mut next_vertex = adm_graph.remove_v_from_candidates(p);
     let mut order = Vec::default();
     while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
@@ -70,10 +83,7 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
 
     let found_order = adm_graph.is_all_vertices_in_r_or_candidates();
     if found_order {
-        // println!("Next vertex = {:?}", next_vertex);
-        // println!("Order = {:?}", order);
-        // println!("Cands = {:?}", adm_graph.candidates);
-        order.extend(adm_graph.candidates.iter()); 
+        order.extend(adm_graph.candidates.iter());
         assert_eq!(order.len(), graph.num_vertices());
         Some(order)
     } else {
@@ -92,7 +102,9 @@ fn main() {
     let mut highest_not_p: i32 = -1;
     let mut best_order = None;
 
-    let graph = load_graph(network_path, &network);
+    let mut graph = load_graph(network_path, &network);
+
+    graph.remove_loops();
 
     let mut peak_mem = PEAK_ALLOC.peak_usage_as_kb();
     println!("Max memory used after graph loading in kb is {}", peak_mem);
@@ -126,20 +138,7 @@ fn main() {
     println!("Max memory used in total kb is {}", peak_mem);
 
     if let Some(order) = best_order {
-        let current_dir = std::env::current_dir().unwrap();
-        let new_folder =  current_dir.join("results");
-        std::fs::create_dir_all(&new_folder).unwrap();
-        let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
-
-        let file = std::fs::File::create(file_path).unwrap();
-        let mut gz = GzEncoder::new(file, Compression::default());
-
-        for v in order {
-            writeln!(gz, "{}", v).unwrap();
-        }
-
-
-        gz.finish().unwrap();
+        save_ordering_to_file(network, order);
     }
 }
 
