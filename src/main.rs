@@ -7,8 +7,14 @@ mod admData;
 use crate::admGraph::AdmGraph;
 use clap::Parser;
 use graphbench::editgraph::EditGraph;
+use graphbench::graph::*;
 use peak_alloc::PeakAlloc;
 use std::cmp::max;
+
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use std::io::{BufRead, BufWriter, Write};
+
 
 #[global_allocator]
 static PEAK_ALLOC: PeakAlloc = PeakAlloc;
@@ -46,26 +52,33 @@ fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
     return (x + highest_not_p) / 2;
 }
 
-fn compute_ordering(p: usize, graph: &EditGraph, network: Option<&String>) -> bool {
+fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
     let mut adm_graph = AdmGraph::new(graph);
 
     adm_graph.initialise_candidates(p);
 
+    println!("Vertices = {:?}", graph.vertices().collect::<Vec<&Vertex>>());
+
     let mut next_vertex = adm_graph.remove_v_from_candidates(p);
+    let mut order = Vec::default();
     while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
-        next_vertex.unwrap();
+        let v = next_vertex.unwrap();
+        order.push(v);
         next_vertex = adm_graph.remove_v_from_candidates(p);
     }
-    let is_p = adm_graph.is_all_vertices_in_r_or_candidates();
+    order.extend(next_vertex.iter()); // Adds vertex if not None
 
-    if is_p {
-        match network {
-            Some(n) => adm_graph.save_ordering(n),
-            _ => {}
-        }
+    let found_order = adm_graph.is_all_vertices_in_r_or_candidates();
+    if found_order {
+        println!("Next vertex = {:?}", next_vertex);
+        println!("Order = {:?}", order);
+        println!("Cands = {:?}", adm_graph.candidates);
+        order.extend(adm_graph.candidates.iter()); 
+        assert_eq!(order.len(), graph.num_vertices());
+        Some(order)
+    } else {
+        None
     }
-
-    return is_p;
 }
 
 fn main() {
@@ -75,9 +88,9 @@ fn main() {
     let network = args.network;
     let mut p = args.p;
 
-    let mut is_p;
     let mut lowest_p: i32 = -1;
     let mut highest_not_p: i32 = -1;
+    let mut best_order = None;
 
     let graph = load_graph(network_path, &network);
 
@@ -85,17 +98,21 @@ fn main() {
     println!("Max memory used after graph loading in kb is {}", peak_mem);
 
     loop {
-        is_p = compute_ordering(p as usize, &graph, Some(&network));
-
-        if !is_p {
+        let result = compute_ordering(p as usize, &graph);
+        let mut found_better = false;
+        if let Some(order) = result {
+            assert!(lowest_p == -1 || p < lowest_p);
+            lowest_p = p;
+            best_order = Some(order);
+            found_better = true;
+        } else {
+            assert!(p > highest_not_p);
             highest_not_p = p;
         }
-        if is_p & (lowest_p == -1 || p < lowest_p) {
-            lowest_p = p;
-        }
-        let next_p = next_p_value(p, is_p, lowest_p, highest_not_p);
+
+        let next_p = next_p_value(p, found_better, lowest_p, highest_not_p);
         if next_p == -1 {
-            if !is_p {
+            if !found_better {
                 p = lowest_p;
             }
             break;
@@ -107,6 +124,23 @@ fn main() {
 
     peak_mem = PEAK_ALLOC.peak_usage_as_kb();
     println!("Max memory used in total kb is {}", peak_mem);
+
+    if let Some(order) = best_order {
+        let current_dir = std::env::current_dir().unwrap();
+        let new_folder =  current_dir.join("results");
+        std::fs::create_dir_all(&new_folder).unwrap();
+        let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
+
+        let file = std::fs::File::create(file_path).unwrap();
+        let mut gz = GzEncoder::new(file, Compression::default());
+
+        for v in order {
+            writeln!(gz, "{}", v).unwrap();
+        }
+
+
+        gz.finish().unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -136,7 +170,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph, None));
+        assert!(compute_ordering(4, &graph).is_some());
     }
 
     #[test]
@@ -150,7 +184,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(compute_ordering(4, &graph, None));
+        assert!(compute_ordering(4, &graph).is_some());
     }
 
     #[test]
@@ -164,7 +198,7 @@ mod test_main {
             graph.add_edge(u, v);
         }
 
-        assert!(!compute_ordering(2, &graph, None));
+        assert!(!compute_ordering(2, &graph).is_some());
     }
 
     #[test]
@@ -195,8 +229,8 @@ mod test_main {
 
         let mut p = 1;
         loop {
-            let is_p = compute_ordering(p, &graph, None);
-            if is_p {
+            let is_p = compute_ordering(p, &graph);
+            if is_p.is_some() {
                 break;
             }
             p += 1;

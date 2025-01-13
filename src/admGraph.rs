@@ -3,16 +3,11 @@ use crate::augmentingPath::AugmentingPath;
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::{Graph, Vertex, VertexMap, VertexSet};
 use std::mem;
-use std::env;
-use std::fs::{self, File};
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::io::{BufRead, BufWriter, Write};
 
 pub struct AdmGraph<'a> {
     graph: &'a EditGraph,
     l: VertexSet,
-    r: VertexSet,
+    r_count: usize,
     checks: VertexSet,
     pub candidates: VertexSet,
     adm_data: VertexMap<AdmData>,
@@ -29,7 +24,7 @@ impl<'a> AdmGraph<'a> {
         AdmGraph {
             graph,
             l,
-            r: VertexSet::default(),
+            r_count: 0,
             checks: VertexSet::default(),
             candidates: VertexSet::default(),
             adm_data,
@@ -45,28 +40,28 @@ impl<'a> AdmGraph<'a> {
     }
 
     pub fn is_all_vertices_in_r_or_candidates(&self) -> bool {
-        return self.r.len() + self.candidates.len() == self.graph.num_vertices();
+        return self.r_count + self.candidates.len() == self.graph.num_vertices();
     }
 
-    pub fn save_ordering(&self, network: &String) {
-        let current_dir = env::current_dir().unwrap();
-        let new_folder =  current_dir.join("results");
-        fs::create_dir_all(&new_folder).unwrap();
-        let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
+    // pub fn save_ordering(&self, network: &String) {
+    //     let current_dir = env::current_dir().unwrap();
+    //     let new_folder =  current_dir.join("results");
+    //     fs::create_dir_all(&new_folder).unwrap();
+    //     let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
 
-        let file = File::create(file_path).unwrap();
-        let mut gz = GzEncoder::new(file, Compression::default());
+    //     let file = File::create(file_path).unwrap();
+    //     let mut gz = GzEncoder::new(file, Compression::default());
 
-        for v in &self.r {
-            writeln!(gz, "{}", v).unwrap();
-        }
+    //     for v in &self.r {
+    //         writeln!(gz, "{}", v).unwrap();
+    //     }
 
-        for v in &self.candidates {
-            writeln!(gz, "{}", v).unwrap();
-        }
+    //     for v in &self.candidates {
+    //         writeln!(gz, "{}", v).unwrap();
+    //     }
 
-        gz.finish().unwrap();
-    }
+    //     gz.finish().unwrap();
+    // }
 
     //When a vertex v is moving into R need to move v from L to R for all of v's neighbours u in L
     //check if v can be added to M of u
@@ -195,13 +190,13 @@ impl<'a> AdmGraph<'a> {
     }
 
     pub fn remove_v_from_candidates(&mut self, p: usize) -> Option<Vertex> {
+        assert_eq!(self.r_count + self.l.len(), self.graph.num_vertices());        
         let v = self.candidates.iter().next();
-
         match v {
             Some(&v) => {
                 self.candidates.remove(&v);
                 self.l.remove(&v);
-                self.r.insert(v);
+                self.r_count += 1;
 
                 self.update_n1_of_v(v);
                 self.update_l2_of_v(v);
@@ -210,6 +205,7 @@ impl<'a> AdmGraph<'a> {
 
                 self.adm_data.get_mut(&v).unwrap().delete_m();
 
+                assert_eq!(self.r_count + self.l.len(), self.graph.num_vertices());        
                 Some(v)
             }
             None => None,
@@ -376,7 +372,7 @@ mod test_adm_graph {
 
         adm_graph.remove_v_from_candidates(3);
 
-        assert_eq!(adm_graph.r.len(), 1);
+        assert_eq!(adm_graph.r_count, 1);
         assert_eq!(adm_graph.l.len(), 5);
     }
 }
