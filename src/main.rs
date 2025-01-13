@@ -57,7 +57,7 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
 
     adm_graph.initialise_candidates(p);
 
-    println!("Vertices = {:?}", graph.vertices().collect::<Vec<&Vertex>>());
+    // println!("Vertices = {:?}", graph.vertices().collect::<Vec<&Vertex>>());
 
     let mut next_vertex = adm_graph.remove_v_from_candidates(p);
     let mut order = Vec::default();
@@ -70,9 +70,9 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
 
     let found_order = adm_graph.is_all_vertices_in_r_or_candidates();
     if found_order {
-        println!("Next vertex = {:?}", next_vertex);
-        println!("Order = {:?}", order);
-        println!("Cands = {:?}", adm_graph.candidates);
+        // println!("Next vertex = {:?}", next_vertex);
+        // println!("Order = {:?}", order);
+        // println!("Cands = {:?}", adm_graph.candidates);
         order.extend(adm_graph.candidates.iter()); 
         assert_eq!(order.len(), graph.num_vertices());
         Some(order)
