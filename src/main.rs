@@ -5,7 +5,7 @@ mod augmentingPath;
 mod admData;
 
 use crate::admGraph::AdmGraph;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use graphbench::editgraph::EditGraph;
 use graphbench::graph::*;
 use peak_alloc::PeakAlloc;
@@ -13,13 +13,15 @@ use std::cmp::max;
 
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use std::io::{BufRead, BufWriter, Write};
+use std::io::{BufRead, Write};
+use std::path::PathBuf;
 
 #[global_allocator]
 static PEAK_ALLOC: PeakAlloc = PeakAlloc;
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Args {
     /// network file name
     network: String,
@@ -29,6 +31,23 @@ struct Args {
 
     /// Path to network
     network_path: String,
+
+    #[clap(short, long, default_value_t = false)]
+    /// Whether to track memory consumption
+    track_memory: bool,
+
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Whether to save ordering to file
+    Save {
+        /// The path to save ordering to
+        #[arg(default_value= "results")]
+        path: String,
+    },
 }
 
 fn load_graph(network_path: String, network: &String) -> EditGraph {
@@ -37,11 +56,10 @@ fn load_graph(network_path: String, network: &String) -> EditGraph {
         .unwrap_or_else(|_| panic!("Error occurred loading graph {}", network))
 }
 
-fn save_ordering_to_file(network: String, order: Vec<Vertex>) {
-    let current_dir = std::env::current_dir().unwrap();
-    let new_folder = current_dir.join("results");
-    std::fs::create_dir_all(&new_folder).unwrap();
-    let file_path = new_folder.join(network.as_str().to_owned() + ".txt.gz");
+fn save_ordering_to_file(path: String, network: String, order: Vec<Vertex>) {
+    let folder = PathBuf::from(path);;
+    std::fs::create_dir_all(&folder).unwrap();
+    let file_path = folder.join(network.as_str().to_owned() + ".txt.gz");
 
     let file = std::fs::File::create(file_path).unwrap();
     let mut gz = GzEncoder::new(file, Compression::default());
@@ -67,7 +85,7 @@ fn next_p_value(p: i32, is_p: bool, lowest_p: i32, highest_not_p: i32) -> i32 {
     return (x + highest_not_p) / 2;
 }
 
-fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
+fn compute_ordering(p: usize, graph: &EditGraph, save_order: bool) -> Option<Vec<Vertex>> {
     let mut adm_graph = AdmGraph::new(graph);
 
     adm_graph.initialise_candidates(p);
@@ -76,15 +94,22 @@ fn compute_ordering(p: usize, graph: &EditGraph) -> Option<Vec<Vertex>> {
     let mut order = Vec::default();
     while next_vertex.is_some() && !adm_graph.is_all_vertices_in_r_or_candidates() {
         let v = next_vertex.unwrap();
-        order.push(v);
+        if save_order {
+            order.push(v);
+        }
         next_vertex = adm_graph.remove_v_from_candidates(p);
     }
-    order.extend(next_vertex.iter()); // Adds vertex if not None
+    if save_order {
+        order.extend(next_vertex.iter()); // Adds vertex if not None
+    }
 
     let found_order = adm_graph.is_all_vertices_in_r_or_candidates();
+
     if found_order {
-        order.extend(adm_graph.candidates.iter());
-        assert_eq!(order.len(), graph.num_vertices());
+        if save_order {
+            order.extend(adm_graph.candidates.iter());
+            assert_eq!(order.len(), graph.num_vertices());
+        }
         Some(order)
     } else {
         None
@@ -98,19 +123,30 @@ fn main() {
     let network = args.network;
     let mut p = args.p;
 
+    let track_memory = args.track_memory;
+
+    let save_path = match args.command {
+        None => None,
+        Some(Commands::Save { path }) => Some(path)
+    };
+
     let mut lowest_p: i32 = -1;
     let mut highest_not_p: i32 = -1;
     let mut best_order = None;
+
+    let mut peak_mem : f32;
 
     let mut graph = load_graph(network_path, &network);
 
     graph.remove_loops();
 
-    let mut peak_mem = PEAK_ALLOC.peak_usage_as_kb();
-    println!("Max memory used after graph loading in kb is {}", peak_mem);
+    if track_memory{
+        peak_mem = PEAK_ALLOC.peak_usage_as_kb();
+        println!("Max memory used after graph loading in kb is {}", peak_mem);
+    }
 
     loop {
-        let result = compute_ordering(p as usize, &graph);
+        let result = compute_ordering(p as usize, &graph, save_path.is_some());
         let mut found_better = false;
         if let Some(order) = result {
             assert!(lowest_p == -1 || p < lowest_p);
@@ -134,11 +170,18 @@ fn main() {
 
     println!("p is {}", p);
 
-    peak_mem = PEAK_ALLOC.peak_usage_as_kb();
-    println!("Max memory used in total kb is {}", peak_mem);
+    if track_memory {
+        peak_mem = PEAK_ALLOC.peak_usage_as_kb();
+        println!("Max memory used in total kb is {}", peak_mem);
+    }
 
-    if let Some(order) = best_order {
-        save_ordering_to_file(network, order);
+    match save_path {
+        None => {}
+        Some(path) => {
+            if let Some(order) = best_order {
+                save_ordering_to_file(path, network, order);
+            }
+        }
     }
 }
 

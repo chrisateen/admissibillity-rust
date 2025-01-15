@@ -10,7 +10,7 @@ graphbench = { git="https://github.com/microgravitas/graphbench" }
 flate2 = "1.0.22"
 mwmatching = "0.1.1"
 hopcroft-karp = "0.2.0"
-clap = { version = "4.0.32", features = ["derive"] }
+clap = { version = "4.5.26", features = ["derive"] }
 csv = "1.1"
 serde = { version = "1.0.145", features = ["derive"] }
 peak_alloc = "0.2.1"
