@@ -11,18 +11,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Git Version
-      id: version
-      uses: codacy/git-version@2.7.1
-
-    - name: Determine next version
-      shell: bash
-      run: echo ${{ steps.version.outputs.version }}
-
-    - name: Create Tag
-      shell: bash
-      run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version}}"
-          git push origin "v${{ steps.version.outputs.version }}"
+    - name: Upload artifact to Github releases
+      uses: svenstaro/upload-release-action@v2
+      with:
+          name: binary-${{ input.os }}
+          file: dist/admissibility-rust*
+          repo_token: ${{ input.github_token }}
+          tag: 'v${{ github.run_number }}'
+          overwrite: true
+          file_glob: true

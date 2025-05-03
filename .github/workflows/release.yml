@@ -5,6 +5,15 @@ on:
       - release
 
 jobs:
+  pre_release:
+    name: Pre release steps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conventional Commits
+        uses: webiny/action-conventional-commits@v1.3.0
+      - name: Tag
+        uses: ./.github/actions/tag
+
   release:
     name: Release - ${{ matrix.platform.os-name }}
     strategy:
@@ -34,9 +43,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Conventional Commits
-        uses: webiny/action-conventional-commits@v1.3.0
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
