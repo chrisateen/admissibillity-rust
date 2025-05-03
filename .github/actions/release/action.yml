@@ -14,9 +14,9 @@ runs:
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
-          name: binary-${{ input.os }}
+          name: binary-${{ inputs.os }}
           file: dist/admissibility-rust*
-          repo_token: ${{ input.github_token }}
+          repo_token: ${{ inputs.github_token }}
           tag: 'v${{ github.run_number }}'
           overwrite: true
           file_glob: true
