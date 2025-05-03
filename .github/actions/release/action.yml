@@ -4,16 +4,41 @@ inputs:
   os:
     description: 'target os name'
     required: true
+  github_token:
+    description: 'github access token for upload artifact'
+    required: true
 
 runs:
   using: 'composite'
   steps:
+    - name: Install git-semver
+      shell: bash
+      run: cargo install git-semver
+
+    - name: Determine next version
+      shell: bash
+      id: semver
+      run: echo "VERSION=$(git semver)" >> $GITHUB_OUTPUT
+
+    - name: Update Cargo.toml version
+      shell: bash
+      run: |
+        sed -i "s/^version = .*/version = \"${{ steps.semver.outputs.VERSION }}\"/" Cargo.toml
+
+    - name: Create Tag
+      shell: bash
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v${{ steps.semver.outputs.VERSION }}" -m "chore: release v${{ steps.semver.outputs.VERSION }}"
+        git push origin "v${{ steps.semver.outputs.VERSION }}"
+
     - name: Upload artifact to Github releases
       uses: svenstaro/release-release-action@v2
       with:
         name: binary-${{ inputs.os }}
         file: dist/admissibility-rust*
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        repo_token: ${{ inputs.github_token }}
         tag: 'v${{ github.run_number }}'
         overwrite: true
         file_glob: true
