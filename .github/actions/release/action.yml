@@ -11,14 +11,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install git-semver
-      shell: bash
-      run: cargo install git-semver
+    - name: Git Version
+      id: version
+      uses: codacy/git-version@2.7.1
 
     - name: Determine next version
       shell: bash
-      id: semver
-      run: echo "VERSION=$(git semver)" >> $GITHUB_OUTPUT
+      run: echo ${{ steps.version.outputs.version }}
 
     - name: Update Cargo.toml version
       shell: bash
