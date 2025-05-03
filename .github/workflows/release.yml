@@ -14,9 +14,12 @@ jobs:
       - name: Conventional Commits
         uses: webiny/action-conventional-commits@v1.3.0
       - name: Tag
+        id: tag
         uses: ./.github/actions/tag
+      - name: test
+        run: echo ${{ steps.tag.outputs.version }}
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.tag.outputs.version }}
 
   release:
     name: Release - ${{ matrix.platform.os-name }}

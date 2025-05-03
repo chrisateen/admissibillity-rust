@@ -10,7 +10,7 @@ runs:
 
     - name: Determine next version
       shell: bash
-      run: echo ${{ steps.version.outputs.version }}
+      run: echo "version=${{ steps.version.outputs.version }}" >> "$GITHUB_OUTPUT"
 
     - name: Create Tag
       shell: bash
