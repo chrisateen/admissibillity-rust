@@ -51,12 +51,12 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target ${{ matrix.platform.target }}
+          args: --release --target ${{ matrix.platform.target }}
 
       - name: Show Rust build output files
         run: |
           echo "Release binaries:"
-          ls -R target/
+          ls -R target/${{ matrix.platform.target }}
 
       - name: Compress binary
         run: |
