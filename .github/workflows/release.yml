@@ -65,4 +65,4 @@ jobs:
         with:
           os:  ${{ matrix.platform.os-name }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          version: needs.pre_release.outputs.version
+          version: ${{ needs.pre_release.outputs.version }}
