@@ -53,6 +53,11 @@ jobs:
           command: build
           args: --target ${{ matrix.platform.target }}
 
+      - name: Show Rust build output files
+        run: |
+          echo "Release binaries:"
+          ls -lh target/*/release/
+
       - name: Compress binary
         run: |
             BIN_NAME="admissibility-rust"
