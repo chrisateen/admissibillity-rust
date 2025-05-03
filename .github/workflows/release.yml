@@ -10,9 +10,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - os-name: Windows-x86_64
-            runs-on: windows-latest
-            target: x86_64-pc-windows-gnu
+#          - os-name: Windows-x86_64
+#            runs-on: windows-latest
+#            target: x86_64-pc-windows-gnu
 
           - os-name: Linux-x86_64
           - runs_on: ubuntu-latest
