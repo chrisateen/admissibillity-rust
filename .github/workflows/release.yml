@@ -45,6 +45,9 @@ jobs:
 
       - name: Build
         uses: ./.github/actions/build
+        with:
+          target: ${{ matrix.platform.target }}
+          os:  ${{ matrix.platform.os-name }}
 
       - name: Create Tag
         run: |
@@ -55,3 +58,5 @@ jobs:
 
       - name: Release
         uses: ./.github/actions/release
+        with:
+          os:  ${{ matrix.platform.os-name }}

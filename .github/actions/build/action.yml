@@ -1,11 +1,18 @@
 name: 'Build'
 description: 'Builds the binaries'
+inputs:
+  target:
+    description: 'target-arch'
+    required: true
+  os:
+    description: 'target os name'
+    required: true
 
 runs:
   using: 'composite'
   steps:
     - name: Install dependencies for Windows target
-      if: matrix.platform.target == 'x86_64-pc-windows-gnu'
+      if: inputs.target == 'x86_64-pc-windows-gnu'
       run: |
         sudo apt-get update
         sudo apt-get install -y mingw-w64
@@ -15,15 +22,15 @@ runs:
       with:
         use-cross: true
         command: build
-        args: --release --target ${{ matrix.platform.target }}
+        args: --release --target ${{ inputs.target }}
 
     - name: Compress binary
       run: |
         BIN_NAME="admissibility-rust"
         mkdir -p dist
-        if [[ "${{ matrix.platform.target }}" == *"windows"* ]]; then
+        if [[ "${{ inputs.target }}" == *"windows"* ]]; then
           EXT=".exe"
-          zip -j dist/${BIN_NAME}-${{ matrix.platform.os-name }}.zip target/${{ matrix.platform.target }}/release/${BIN_NAME}$EXT
+          zip -j dist/${BIN_NAME}-${{ inputs.os }}.zip target/${{ inputs.target }}/release/${BIN_NAME}$EXT
         else
-          tar -czvf dist/${BIN_NAME}-${{ matrix.platform.os-name }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
+          tar -czvf dist/${BIN_NAME}-${{ inputs.os }}.tar.gz -C target/${{ inputs.target }}/release ${BIN_NAME}
         fi
