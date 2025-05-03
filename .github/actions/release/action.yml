@@ -1,9 +1,6 @@
 name: 'Upload'
 description: 'Upload to github releases'
 inputs:
-  os:
-    description: 'target os name'
-    required: true
   github_token:
     description: 'github access token for upload artifact'
     required: true
@@ -17,7 +14,6 @@ runs:
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
-          name: binary-${{ inputs.os }}
           file: dist/admissibility-rust*
           repo_token: ${{ inputs.github_token }}
           tag: 'v${{ inputs.version }}'
