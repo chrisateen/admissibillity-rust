@@ -46,9 +46,5 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y mingw-w64
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --verbose --target ${{ matrix.platform.target }}
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.platform.target }}
