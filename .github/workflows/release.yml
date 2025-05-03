@@ -14,10 +14,15 @@ jobs:
             runs-on: windows-latest
             target: x86_64-pc-windows-msvc
 
-    runs-on: ${{ matrix.platform.runs-on }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Build
         uses: actions-rs/cargo@v1
