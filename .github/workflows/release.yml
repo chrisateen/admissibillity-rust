@@ -59,9 +59,9 @@ jobs:
             mkdir -p dist
             if [[ "${{ matrix.platform.target }}" == *"windows"* ]]; then
               EXT=".exe"
-              zip -j dist/${BIN_NAME}-${{ matrix.os-name }}.zip target/${{ matrix.target }}/release/${BIN_NAME}$EXT
+              zip -j dist/${BIN_NAME}-${{ matrix.platform.os-name }}.zip target/${{ matrix.platform.target }}/release/${BIN_NAME}$EXT
             else
-              tar -czvf dist/${BIN_NAME}-${{ matrix.os-name }}.tar.gz -C target/${{ matrix.target }}/release ${BIN_NAME}
+              tar -czvf dist/${BIN_NAME}-${{ matrix.platform.os-name }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
             fi
 
       - name: Upload artifact
