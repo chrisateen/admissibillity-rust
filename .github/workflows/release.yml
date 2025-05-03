@@ -56,7 +56,7 @@ jobs:
       - name: Show Rust build output files
         run: |
           echo "Release binaries:"
-          ls -lh target/*/release/
+          ls -R target/
 
       - name: Compress binary
         run: |
