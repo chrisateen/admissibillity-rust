@@ -64,12 +64,19 @@ jobs:
               tar -czvf dist/${BIN_NAME}-${{ matrix.platform.os-name }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
             fi
 
+      - name: Create Tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v${{ github.run_number }}" -m "Release v${{ github.run_number }}"
+          git push origin "v${{ github.run_number }}"
+
       - name: Upload artifact to Github releases
         uses: svenstaro/upload-release-action@v2
         with:
           name: binary-${{ matrix.platform.os-name }}
           file: dist/admissibility-rust*
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: 'v${{ github.run_number }}'
           overwrite: true
           file_glob: true
