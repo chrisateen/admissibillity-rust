@@ -53,11 +53,6 @@ jobs:
           command: build
           args: --release --target ${{ matrix.platform.target }}
 
-      - name: Show Rust build output files
-        run: |
-          echo "Release binaries:"
-          ls -R target/${{ matrix.platform.target }}
-
       - name: Compress binary
         run: |
             BIN_NAME="admissibility-rust"
@@ -69,8 +64,11 @@ jobs:
               tar -czvf dist/${BIN_NAME}-${{ matrix.platform.os-name }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
             fi
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload artifact to Github releases
+        uses: svenstaro/upload-release-action@v2
         with:
-            name: binary-${{ matrix.platform.os-name }}
-            path: dist/*
+          name: binary-${{ matrix.platform.os-name }}
+          file: dist/admissibility-rust*
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          overwrite: true
