@@ -8,6 +8,7 @@ inputs:
     description: 'github access token for upload artifact'
     required: true
   version:
+    description: 'release version'
     required: true
 
 runs:
