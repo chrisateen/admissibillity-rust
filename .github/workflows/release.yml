@@ -11,10 +11,11 @@ jobs:
       matrix:
         platform:
           - os-name: Linux-x86_64
-            runs-on: ubuntu-latest
             target: x86_64-unknown-linux-musl
+          - os-name: Windows-x86_64
+            target: x86_64-pc-windows-gnu
 
-    runs-on: ${{ matrix.platform.runs-on }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,6 +24,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.platform.target }}
+
+      - name: Install dependencies for Windows target
+        if: matrix.platform.target == 'x86_64-pc-windows-gnu'
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y mingw-w64
 
       - name: Build
         uses: actions-rs/cargo@v1
