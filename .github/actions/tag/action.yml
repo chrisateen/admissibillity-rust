@@ -4,9 +4,6 @@ description: 'Create tag for release'
 runs:
   using: 'composite'
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Git Version
       id: version
       uses: codacy/git-version@2.7.1
