@@ -43,29 +43,8 @@ jobs:
         with:
           targets: ${{ matrix.platform.target }}
 
-      - name: Install dependencies for Windows target
-        if: matrix.platform.target == 'x86_64-pc-windows-gnu'
-        run: |
-            sudo apt-get update
-            sudo apt-get install -y mingw-w64
-
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.platform.target }}
-
-      - name: Compress binary
-        run: |
-            BIN_NAME="admissibility-rust"
-            mkdir -p dist
-            if [[ "${{ matrix.platform.target }}" == *"windows"* ]]; then
-              EXT=".exe"
-              zip -j dist/${BIN_NAME}-${{ matrix.platform.os-name }}.zip target/${{ matrix.platform.target }}/release/${BIN_NAME}$EXT
-            else
-              tar -czvf dist/${BIN_NAME}-${{ matrix.platform.os-name }}.tar.gz -C target/${{ matrix.platform.target }}/release ${BIN_NAME}
-            fi
+        uses: ./.github/actions/build
 
       - name: Create Tag
         run: |
@@ -74,12 +53,5 @@ jobs:
           git tag -a "v${{ github.run_number }}" -m "Release v${{ github.run_number }}"
           git push origin "v${{ github.run_number }}"
 
-      - name: Upload artifact to Github releases
-        uses: svenstaro/upload-release-action@v2
-        with:
-          name: binary-${{ matrix.platform.os-name }}
-          file: dist/admissibility-rust*
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: 'v${{ github.run_number }}'
-          overwrite: true
-          file_glob: true
+      - name: Release
+        uses: ./.github/actions/release

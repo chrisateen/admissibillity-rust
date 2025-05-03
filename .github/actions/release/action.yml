@@ -1,0 +1,15 @@
+name: 'Upload'
+description: 'Upload to github releases'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload artifact to Github releases
+      uses: svenstaro/release-release-action@v2
+      with:
+        name: binary-${{ matrix.platform.os-name }}
+        file: dist/admissibility-rust*
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: 'v${{ github.run_number }}'
+        overwrite: true
+        file_glob: true
