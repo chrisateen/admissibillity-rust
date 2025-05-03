@@ -12,7 +12,7 @@ jobs:
         platform:
           - os-name: Windows-x86_64
             runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-gnu
 
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +25,7 @@ jobs:
           targets: ${{ matrix.platform.target }}
 
       - name: Install dependencies for Windows target
-        if: matrix.target == 'x86_64-pc-windows-gnu'
+        if: matrix.platform.target == 'x86_64-pc-windows-gnu'
         run: |
             sudo apt-get update
             sudo apt-get install -y mingw-w64
