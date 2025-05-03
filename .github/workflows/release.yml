@@ -35,6 +35,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Conventional Commits
+        uses: webiny/action-conventional-commits@v1.3.0
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
