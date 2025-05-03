@@ -7,6 +7,8 @@ inputs:
   github_token:
     description: 'github access token for upload artifact'
     required: true
+  version:
+    required: true
 
 runs:
   using: 'composite'
@@ -17,6 +19,6 @@ runs:
           name: binary-${{ inputs.os }}
           file: dist/admissibility-rust*
           repo_token: ${{ inputs.github_token }}
-          tag: 'v${{ github.run_number }}'
+          tag: 'v${{ inputs.version }}'
           overwrite: true
           file_glob: true

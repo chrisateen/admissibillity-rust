@@ -20,6 +20,7 @@ jobs:
 
   release:
     name: Release - ${{ matrix.platform.os-name }}
+    needs: [pre_release]
     strategy:
       matrix:
         platform:
@@ -64,3 +65,4 @@ jobs:
         with:
           os:  ${{ matrix.platform.os-name }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          version: needs.pre_release.outputs.version
