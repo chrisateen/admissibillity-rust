@@ -46,4 +46,4 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target ${{ matrix.platform.target }}
+          args: --verbose --target ${{ matrix.platform.target }}
