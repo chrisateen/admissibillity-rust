@@ -1,6 +1,11 @@
 name: 'Tag'
 description: 'Create tag for release'
 
+outputs:
+  version:
+    description: 'New release version'
+    value: ${{  steps.version.outputs.version }}
+
 runs:
   using: 'composite'
   steps:
