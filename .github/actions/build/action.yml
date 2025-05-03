@@ -12,6 +12,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install dependencies for Windows target
+      shell: bash
       if: inputs.target == 'x86_64-pc-windows-gnu'
       run: |
         sudo apt-get update
@@ -25,6 +26,7 @@ runs:
         args: --release --target ${{ inputs.target }}
 
     - name: Compress binary
+      shell: bash
       run: |
         BIN_NAME="admissibility-rust"
         mkdir -p dist
