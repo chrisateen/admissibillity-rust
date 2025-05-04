@@ -32,6 +32,7 @@ runs:
       with:
         name: CHANGELOG.md
         retention-days: 1
+        path: ./
 
     - name: Commit changelog
       if: inputs.target == 'x86_64-pc-windows-gnu'

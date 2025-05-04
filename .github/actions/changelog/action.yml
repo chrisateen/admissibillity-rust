@@ -12,6 +12,7 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: CHANGELOG.md
+        path: ./
 
     - name: Commit changelog
       if: inputs.target == 'x86_64-pc-windows-gnu'
