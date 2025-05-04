@@ -7,14 +7,10 @@ inputs:
   version:
     description: 'release version'
     required: true
-  changelog:
-    description: 'changelog'
-    required: true
 
 runs:
   using: 'composite'
   steps:
-
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
@@ -23,10 +19,3 @@ runs:
           tag: 'v${{ inputs.version }}'
           overwrite: true
           file_glob: true
-          body: ${{ inputs.changelog }}
-
-    - name: Commit CHANGELOG.md
-      uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        commit_message: 'docs: update CHANGELOG.md for ${{ inputs.version }} [skip ci]'
-        file_pattern: CHANGELOG.md
