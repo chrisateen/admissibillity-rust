@@ -7,6 +7,9 @@ inputs:
   version:
     description: 'release version'
     required: true
+  changelog:
+    description: 'changelog text'
+    required: true
 
 runs:
   using: 'composite'
@@ -19,3 +22,4 @@ runs:
           tag: 'v${{ inputs.version }}'
           overwrite: true
           file_glob: true
+          body: ${{ inputs.changelog }}
