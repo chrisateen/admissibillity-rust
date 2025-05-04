@@ -7,15 +7,14 @@ inputs:
   version:
     description: 'release version'
     required: true
+  changelog:
+    description: 'changelog'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    - name: Generate changelog
-      uses: metcalfc/changelog-generator@v1
-      id: changelog
-      with:
-        token: ${{ inputs.github_token }}
+
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
@@ -24,4 +23,4 @@ runs:
           tag: 'v${{ inputs.version }}'
           overwrite: true
           file_glob: true
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: ${{ inputs.changelog }}

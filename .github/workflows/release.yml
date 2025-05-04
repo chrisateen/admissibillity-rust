@@ -63,8 +63,15 @@ jobs:
           target: ${{ matrix.platform.target }}
           os:  ${{ matrix.platform.os-name }}
 
+      - name: Generate changelog
+        uses: metcalfc/changelog-generator@v1
+        id: changelog
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Release
         uses: ./.github/actions/release
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ needs.pre_release.outputs.version }}
+          changelog: ${{ steps.changelog.outputs.changelog }}
