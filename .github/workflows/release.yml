@@ -68,6 +68,7 @@ jobs:
         uses: ./.github/actions/release
         with:
           version: ${{ needs.pre_release.outputs.version }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   publish_changelog:
     needs: [release]

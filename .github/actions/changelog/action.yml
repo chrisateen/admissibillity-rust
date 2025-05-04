@@ -15,7 +15,6 @@ runs:
         path: ./
 
     - name: Commit changelog
-      if: inputs.target == 'x86_64-pc-windows-gnu'
       shell: bash
       run: |
         git config user.name "github-actions"
@@ -24,4 +23,4 @@ runs:
         git commit -m "docs: update changelog [skip ci]" || echo "No changes to commit"
         git push
       env:
-        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}

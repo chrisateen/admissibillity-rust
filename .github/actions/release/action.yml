@@ -33,15 +33,3 @@ runs:
         name: CHANGELOG.md
         retention-days: 1
         path: ./
-
-    - name: Commit changelog
-      if: inputs.target == 'x86_64-pc-windows-gnu'
-      shell: bash
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git add CHANGELOG.md
-        git commit -m "docs: update changelog [skip ci]" || echo "No changes to commit"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
