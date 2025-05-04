@@ -27,6 +27,12 @@ runs:
           file_glob: true
           body: ${{ steps.git-cliff.outputs.content }}
 
+    - name: Save changelog
+      uses: actions/upload-artifact@v2
+      with:
+        name: CHANGELOG.md
+        retention-days: 1
+
     - name: Commit changelog
       if: inputs.target == 'x86_64-pc-windows-gnu'
       shell: bash
@@ -37,4 +43,4 @@ runs:
         git commit -m "docs: update changelog [skip ci]" || echo "No changes to commit"
         git push
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}

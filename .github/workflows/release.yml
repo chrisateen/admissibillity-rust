@@ -67,5 +67,16 @@ jobs:
       - name: Release
         uses: ./.github/actions/release
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ needs.pre_release.outputs.version }}
+
+  publish_changelog:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Changelog
+        uses: ./.github/actions/changelog
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
