@@ -11,60 +11,64 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Conventional Commits
-        uses: webiny/action-conventional-commits@v1.3.0
-      - name: Tag
-        id: tag
-        uses: ./.github/actions/tag
-      - name: test
-        run: echo "version=${{ steps.tag.outputs.version }}"
-    outputs:
-      version: ${{ steps.tag.outputs.version }}
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Conventional Commits
+#        uses: webiny/action-conventional-commits@v1.3.0
+#      - name: Tag
+#        id: tag
+#        uses: ./.github/actions/tag
+#      - name: test
+#        run: echo "version=${{ steps.tag.outputs.version }}"
+#    outputs:
+#      version: ${{ steps.tag.outputs.version }}
 
-  release:
-    name: Release - ${{ matrix.platform.os-name }}
-    needs: [pre_release]
-    strategy:
-      matrix:
-        platform:
-          - os-name: Windows-x86_64
-            runs-on: ubuntu-latest
-            target: x86_64-pc-windows-gnu
-
-          - os-name: Linux-x86_64
-            runs-on: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-
-          - os-name: Linux-aarch64
-            runs-on: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-
-          - os-name: macOS-x86_64
-            runs-on: macos-latest
-            target: x86_64-apple-darwin
-
-          - os-name: macOS-aarch64
-            runs-on: macos-latest
-            target: aarch64-apple-darwin
-
-    runs-on: ${{ matrix.platform.runs-on }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform.target }}
-
-      - name: Build
-        uses: ./.github/actions/build
-        with:
-          target: ${{ matrix.platform.target }}
-          os:  ${{ matrix.platform.os-name }}
-
-      - name: Release
-        uses: ./.github/actions/release
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ needs.pre_release.outputs.version }}
+#  release:
+#    name: Release - ${{ matrix.platform.os-name }}
+#    needs: [pre_release]
+#    strategy:
+#      matrix:
+#        platform:
+#          - os-name: Windows-x86_64
+#            runs-on: ubuntu-latest
+#            target: x86_64-pc-windows-gnu
+#
+#          - os-name: Linux-x86_64
+#            runs-on: ubuntu-latest
+#            target: x86_64-unknown-linux-musl
+#
+#          - os-name: Linux-aarch64
+#            runs-on: ubuntu-latest
+#            target: aarch64-unknown-linux-musl
+#
+#          - os-name: macOS-x86_64
+#            runs-on: macos-latest
+#            target: x86_64-apple-darwin
+#
+#          - os-name: macOS-aarch64
+#            runs-on: macos-latest
+#            target: aarch64-apple-darwin
+#
+#    runs-on: ${{ matrix.platform.runs-on }}
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      - name: Install Rust
+#        uses: dtolnay/rust-toolchain@stable
+#        with:
+#          targets: ${{ matrix.platform.target }}
+#
+#      - name: Build
+#        uses: ./.github/actions/build
+#        with:
+#          target: ${{ matrix.platform.target }}
+#          os:  ${{ matrix.platform.os-name }}
+#
+#      - name: Release
+#        uses: ./.github/actions/release
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }}
+#          version: ${{ needs.pre_release.outputs.version }}
