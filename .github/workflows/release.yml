@@ -19,8 +19,22 @@ jobs:
         id: tag
         uses: ./.github/actions/tag
 
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Save changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHANGELOG.md
+          retention-days: 1
+          path: ./
+
     outputs:
       version: ${{ steps.tag.outputs.version }}
+      changelog: ${{ steps.git-cliff.outputs.content }}
 
   release:
     name: Release - ${{ matrix.platform.os-name }}
@@ -69,6 +83,7 @@ jobs:
         with:
           version: ${{ needs.pre_release.outputs.version }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          changelog: ${{ needs.pre_release.outputs.changelog }}
 
   publish_changelog:
     needs: [release]

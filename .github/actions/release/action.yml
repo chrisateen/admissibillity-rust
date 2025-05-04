@@ -7,16 +7,13 @@ inputs:
   version:
     description: 'release version'
     required: true
+  changelog:
+    description: 'changelog text'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    - name: Generate a changelog
-      uses: orhun/git-cliff-action@v4
-      id: git-cliff
-      env:
-        OUTPUT: CHANGELOG.md
-
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
@@ -25,11 +22,4 @@ runs:
           tag: 'v${{ inputs.version }}'
           overwrite: true
           file_glob: true
-          body: ${{ steps.git-cliff.outputs.content }}
-
-    - name: Save changelog
-      uses: actions/upload-artifact@v4
-      with:
-        name: CHANGELOG.md
-        retention-days: 1
-        path: ./
+          body: ${{ inputs.changelog }}
