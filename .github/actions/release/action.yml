@@ -12,10 +12,8 @@ runs:
   using: 'composite'
   steps:
     - name: Upload artifact to Github releases
-      uses: svenstaro/upload-release-action@v2
+      uses: marvinpinto/action-automatic-releases@latest
       with:
-          file: dist/admissibility-rust*
+          files: dist/admissibility-rust*
           repo_token: ${{ inputs.github_token }}
-          tag: 'v${{ inputs.version }}'
-          overwrite: true
-          file_glob: true
+          automatic_release_tag: 'v${{ inputs.version }}'
