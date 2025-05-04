@@ -11,9 +11,17 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Upload artifact to Github releases
-      uses: marvinpinto/action-automatic-releases@latest
+    - name: Generate changelog
+      uses: metcalfc/changelog-generator@v1
+      id: changelog
       with:
-          files: dist/admissibility-rust*
+        token: ${{ inputs.github_token }}
+    - name: Upload artifact to Github releases
+      uses: svenstaro/upload-release-action@v2
+      with:
+          file: dist/admissibility-rust*
           repo_token: ${{ inputs.github_token }}
-          automatic_release_tag: 'v${{ inputs.version }}'
+          tag: 'v${{ inputs.version }}'
+          overwrite: true
+          file_glob: true
+          body: ${{ steps.changelog.outputs.changelog }}
