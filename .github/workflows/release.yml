@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - main
-      - changelog
 
 jobs:
   pre_release:
