@@ -18,9 +18,6 @@ jobs:
         id: tag
         uses: ./.github/actions/tag
 
-      - name: test
-        run: echo "version=${{ steps.tag.outputs.version }}"
-
     outputs:
       version: ${{ steps.tag.outputs.version }}
 

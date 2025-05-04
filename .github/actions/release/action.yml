@@ -11,6 +11,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Generate a changelog
+      uses: orhun/git-cliff-action@v4
+      id: git-cliff
+      env:
+        OUTPUT: CHANGELOG.md
+
     - name: Upload artifact to Github releases
       uses: svenstaro/upload-release-action@v2
       with:
