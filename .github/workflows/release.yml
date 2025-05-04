@@ -11,18 +11,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Conventional Commits
         uses: webiny/action-conventional-commits@v1.3.0
-
-      - name: Git Version
-        id: version
-        uses: codacy/git-version@2.7.1
-
-      - name: Output next version
-        shell: bash
-        run: echo "version=${{ steps.version.outputs.version }}" >> "$GITHUB_OUTPUT"
-
+      - name: Tag
+        id: tag
+        uses: ./.github/actions/tag
+      - name: test
+        run: echo "version=${{ steps.tag.outputs.version }}"
     outputs:
       version: ${{ steps.tag.outputs.version }}
 

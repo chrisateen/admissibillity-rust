@@ -17,4 +17,3 @@ runs:
           files: dist/admissibility-rust*
           repo_token: ${{ inputs.github_token }}
           automatic_release_tag: 'v${{ inputs.version }}'
-          prerelease: false
